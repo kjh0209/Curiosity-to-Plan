@@ -247,6 +247,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for lifelong learners**
 
-[Report Bug](https://github.com/yourusername/skillloop/issues) · [Request Feature](https://github.com/yourusername/skillloop/issues)
+[Report Bug](https://github.com/kjh0209/Curiosity-to-Plan/issues) · [Request Feature](https://github.com/kjh0209/Curiosity-to-Plan/issues)
 
 </div>
