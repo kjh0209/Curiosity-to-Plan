@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "SkillLoop - 14-Day Learning Routine",
-  description: "Convert your curiosity into a structured 14-day learning plan",
+  title: "SkillLoop - Personalized Learning Routine",
+  description: "Convert your curiosity into a customized learning plan with AI",
 };
 
 export default function RootLayout({
@@ -14,10 +15,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-50 text-gray-900">
-        <div className="min-h-screen">
-          {children}
-        </div>
+        <Providers>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );
 }
+

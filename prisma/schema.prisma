@@ -12,35 +12,75 @@ datasource db {
 
 model User {
   id                String     @id @default(cuid())
-  interest          String
-  goal              String
+  email             String     @unique
+  password          String
+  name              String?
+  interest          String     @default("")
+  goal              String     @default("")
   minutesPerDay     Int        @default(20)
+  totalDays         Int        @default(14)
+  riskStyle         String     @default("BALANCED") // CONSERVATIVE | BALANCED | CHALLENGER
+  baselineLevel     String     @default("BEGINNER") // BEGINNER | INTERMEDIATE | ADVANCED
+  variant           String     @default("ADAPTIVE") // STATIC | ADAPTIVE
+  language          String     @default("en") // en | ko | ja | zh | es | ...
+  resourceSort      String     @default("relevance") // relevance | viewCount | rating
   streak            Int        @default(0)
+  freezeCount       Int        @default(0)
   lastCompletedDate DateTime?
+  createdAt         DateTime   @default(now())
   plans             Plan[]
+  quizAttempts      QuizAttempt[]
 }
 
 model Plan {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
-  planTitle String
-  createdAt DateTime   @default(now())
-  days      DayPlan[]
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planTitle     String
+  totalDays     Int        @default(14)
+  minutesPerDay Int        @default(20)
+  skillGraph    String?    // JSON stringified skill graph
+  createdAt     DateTime   @default(now())
+  days          DayPlan[]
+  quizAttempts  QuizAttempt[]
 }
 
 model DayPlan {
-  id        String   @id @default(cuid())
-  planId    String
-  plan      Plan     @relation(fields: [planId], references: [id])
-  dayNumber Int
+  id           String   @id @default(cuid())
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber    Int
   missionTitle String
-  focus     String
-  difficulty Int      @default(1)
-  status    String   @default("LOCKED") // LOCKED | READY | DONE
-  steps     String?  // JSON stringified array
-  quiz      String?  // JSON stringified array
-  result    String?  // JSON stringified grade result
+  focus        String
+  difficulty   Int      @default(1)
+  status       String   @default("LOCKED") // LOCKED | READY | DONE
+  steps        String?  // JSON stringified array
+  quiz         String?  // JSON stringified array
+  resources    String?  // JSON array of {type, title, url, description}
+  result       String?  // JSON stringified grade result
   
   @@unique([planId, dayNumber])
+}
+
+model QuizAttempt {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber        Int
+  answers          String   // JSON stringified user answers
+  score            Float    // 0.0 - 1.0
+  feedback         String
+  difficultySignal String   // TOO_EASY | ON_TRACK | TOO_HARD
+  createdAt        DateTime @default(now())
+}
+
+model TraceLog {
+  id        String   @id @default(cuid())
+  traceId   String
+  traceName String
+  userId    String?
+  metadata  String?  // JSON
+  createdAt DateTime @default(now())
 }

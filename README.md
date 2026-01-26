@@ -1,6 +1,6 @@
 # 🔄 SkillLoop
 
-> **Turn your curiosity into a 14-day learning journey with AI-powered personalized learning plans**
+> **Turn your curiosity into a personalized learning journey with AI-powered plans, adaptive quizzes, and rich learning resources**
 
 <div align="center">
 
@@ -8,7 +8,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=for-the-badge&logo=openai)
-![Opik](https://img.shields.io/badge/Opik-Tracing-orange?style=for-the-badge)
+![Opik](https://img.shields.io/badge/Opik-LLM_Observability-orange?style=for-the-badge)
+![NextAuth](https://img.shields.io/badge/NextAuth-Authentication-green?style=for-the-badge)
 
 </div>
 
@@ -16,35 +17,44 @@
 
 ## ✨ Features
 
-### 🎯 Personalized Learning Plans
-- Enter your interest and learning goal
-- AI generates a customized 14-day learning curriculum
-- Each day includes specific missions tailored to your skill level
+### 🔐 User Authentication
+- Secure email/password registration and login
+- Session-based authentication with NextAuth.js
+- Personal learning history and progress tracking
 
-### 📚 Daily Missions & Quizzes
-- Concrete learning steps for each day (~20 min sessions)
-- 3-question quizzes to test your understanding
-- Mix of multiple choice and short answer questions
+### 🎯 Fully Customizable Learning Plans
+- **Duration**: 7 to 100 days
+- **Daily Time**: 5 to 120 minutes per session
+- **Difficulty**: Conservative, Balanced, or Challenger modes
+- **Experience Level**: Beginner, Intermediate, or Advanced
 
-### 📈 Adaptive Difficulty
-- Automatic difficulty adjustment based on quiz performance
-- Score 3/3? Next day gets harder
-- Score 0-1/3? Next day gets easier
-- Perfect balance of challenge and achievement
+### 📚 Rich Learning Resources
+Each day includes curated links to real learning materials:
+- 🎬 **YouTube Videos** - Tutorial and educational content
+- 📝 **Medium Articles** - In-depth blog posts
+- 📖 **Wikipedia** - Reference material
+- 💻 **Documentation** - Official guides and tutorials
 
-### 🔥 Streak Tracking
-- Track your daily learning consistency
-- Build momentum with consecutive day completions
+### 🧠 Smart Quizzes with Answer Reveal
+- Mix of multiple choice (MCQ) and short answer questions
+- **Short answers are single-word/phrase** for easy grading
+- Detailed explanations for each answer
+- See correct answers after submission
 
-### 🗂️ Plan History
-- View all your created learning plans
-- Switch between plans easily
-- Track progress across multiple topics
+### 📈 Adaptive Difficulty System
+- AI adjusts difficulty based on your quiz performance
+- Score 3/3? Next day gets more challenging
+- Struggling? Next day eases up to help you learn
 
-### 🔍 LLM Observability with Opik
+### 🔥 Streak Tracking with Freeze
+- Track consecutive learning days
+- Motivational Duolingo-style messages
+- Streak freeze protection (coming soon)
+
+### � LLM Observability with Opik
 - Full tracing of all AI interactions
 - Performance monitoring and evaluation
-- Debug and optimize your prompts
+- Dedicated observability dashboard at `/observability`
 
 ---
 
@@ -55,7 +65,7 @@
 - Node.js 18+
 - npm or yarn
 - OpenAI API key
-- Opik account (optional, for tracing)
+- Opik account (for LLM tracing)
 
 ### Installation
 
@@ -68,7 +78,7 @@ cd skillloop
 npm install
 
 # Set up environment variables
-cp .env.local.example .env.local
+cp .env.example .env.local
 # Edit .env.local with your API keys
 
 # Initialize the database
@@ -80,7 +90,7 @@ npm run dev
 
 ### Environment Variables
 
-Create a `.env.local` file with the following variables:
+Create a `.env.local` file:
 
 ```env
 # Database
@@ -89,7 +99,11 @@ DATABASE_URL="file:./dev.db"
 # OpenAI
 OPENAI_API_KEY=sk-your-openai-api-key
 
-# Opik (optional - for LLM tracing)
+# NextAuth
+NEXTAUTH_SECRET=your-secret-key-here
+NEXTAUTH_URL=http://localhost:3000
+
+# Opik (LLM Tracing)
 OPIK_API_KEY=your-opik-api-key
 OPIK_PROJECT_NAME=skillloop
 OPIK_WORKSPACE_NAME=your-workspace
@@ -100,26 +114,30 @@ OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
 
 ## 📖 Usage Guide
 
-### Creating Your First Plan
+### 1. Create an Account
+- Visit the app and click "Sign Up"
+- Enter your email and password
+- You'll be redirected to create your first plan
 
-1. **Open the app** at `http://localhost:3000`
-2. **Enter your interest** (e.g., "machine learning", "piano", "cooking")
-3. **Define your goal** (e.g., "Build a basic ML model")
-4. **Click "Generate 14-day plan"** and wait for AI to create your curriculum
+### 2. Create a Learning Plan
+Configure your personalized plan:
+- **Interest**: What do you want to learn?
+- **Goal**: What do you want to achieve?
+- **Duration**: 7-100 days
+- **Daily Time**: 5-120 minutes
+- **Experience Level**: Beginner/Intermediate/Advanced
+- **Challenge Style**: Conservative/Balanced/Challenger
 
-### Completing Daily Missions
+### 3. Complete Daily Missions
+Each day includes:
+- 📚 **Learning Resources** - YouTube, Wikipedia, articles
+- ✅ **Step-by-step tasks** - Concrete learning activities
+- 🧪 **Quiz** - 3 questions to test understanding
 
-1. Navigate to your plan and click **"Start"** on Day 1
-2. Read through the **learning steps** for the day
-3. Complete the **quiz** to test your knowledge
-4. Get **instant feedback** and see your score
-5. The next day automatically **unlocks** upon completion
-
-### Managing Multiple Plans
-
-- Click **"View My Existing Plans"** to see all your learning journeys
-- Track progress with **visual completion bars**
-- Switch between plans anytime
+### 4. Review & Progress
+- See correct answers after each quiz
+- Track your streak on the dashboard
+- View all your plans in the Plans page
 
 ---
 
@@ -130,6 +148,7 @@ OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
 | **Next.js 14** | React framework with App Router |
 | **TypeScript** | Type-safe development |
 | **TailwindCSS** | Styling and responsive design |
+| **NextAuth.js** | Authentication |
 | **Prisma** | Database ORM |
 | **SQLite** | Local development database |
 | **OpenAI** | GPT-4o-mini for content generation |
@@ -144,84 +163,77 @@ OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
 skillloop/
 ├── app/
 │   ├── api/
-│   │   ├── plan/generate/     # Generate learning plan
-│   │   ├── day/generate/      # Generate daily mission
-│   │   ├── quiz/grade/        # Grade quiz answers
-│   │   └── plans/             # Fetch user plans
-│   ├── plan/                  # View current plan
-│   ├── plans/                 # Plan history
-│   ├── day/[dayNumber]/       # Daily mission page
-│   └── page.tsx               # Onboarding
+│   │   ├── auth/             # NextAuth routes
+│   │   ├── plan/generate/    # Generate learning plan
+│   │   ├── day/generate/     # Generate daily mission
+│   │   ├── quiz/grade/       # Grade quiz answers
+│   │   ├── plans/            # Fetch user plans
+│   │   ├── user/             # User data
+│   │   └── traces/           # Opik trace logs
+│   ├── auth/
+│   │   ├── login/            # Login page
+│   │   └── register/         # Registration page
+│   ├── plan/                 # View current plan
+│   ├── plans/                # Plan history
+│   ├── day/[dayNumber]/      # Daily mission page
+│   ├── observability/        # Opik dashboard
+│   └── page.tsx              # Onboarding
 ├── lib/
-│   ├── db.ts                  # Prisma client
-│   ├── opik.ts                # Opik tracing helper
-│   └── schemas.ts             # Zod schemas
+│   ├── auth.ts               # NextAuth config
+│   ├── db.ts                 # Prisma client
+│   ├── opik.ts               # Opik tracing helper
+│   └── schemas.ts            # Zod schemas
 ├── prisma/
-│   └── schema.prisma          # Database schema
+│   └── schema.prisma         # Database schema
 └── scripts/
-    └── opik_eval_plan.ts      # Evaluation script
+    └── opik_eval_plan.ts     # Evaluation script
 ```
 
 ---
 
 ## 🔬 API Endpoints
 
-### `POST /api/plan/generate`
-Generate a new 14-day learning plan.
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/[...nextauth]` - NextAuth handler
 
-**Request Body:**
-```json
-{
-  "userId": "string",
-  "interest": "string",
-  "goal": "string",
-  "minutesPerDay": 20
-}
-```
+### Plans
+- `POST /api/plan/generate` - Generate new plan
+- `GET /api/plans` - List user's plans
+- `GET /api/plans/[planId]` - Get specific plan
 
-### `POST /api/day/generate`
-Generate mission content for a specific day.
+### Daily Missions
+- `POST /api/day/generate` - Generate day content
+- `POST /api/quiz/grade` - Grade quiz answers
 
-**Request Body:**
-```json
-{
-  "userId": "string",
-  "dayNumber": 1,
-  "missionTitle": "string",
-  "focus": "string",
-  "difficulty": 1
-}
-```
-
-### `POST /api/quiz/grade`
-Grade quiz answers and update progress.
-
-**Request Body:**
-```json
-{
-  "userId": "string",
-  "dayNumber": 1,
-  "quiz": [...],
-  "userAnswers": ["answer1", "answer2", "answer3"],
-  "currentDifficulty": 1
-}
-```
+### User & Observability
+- `GET /api/user` - Get user data
+- `GET /api/traces` - Get recent trace logs
 
 ---
 
-## 📊 Running Evaluations
+## 📊 Opik Observability
 
-Use the Opik evaluation script to test plan generation quality:
+### What's Traced
+- **generate_plan** - Plan creation with all settings
+- **generate_day_mission** - Daily mission generation
+- **grade_quiz** - Quiz grading with AI
+
+### Viewing Traces
+1. Visit `/observability` in the app
+2. Click "Open Opik Dashboard" 
+3. View detailed traces in Comet's Opik interface
+
+### Running Evaluations
 
 ```bash
 npx tsx scripts/opik_eval_plan.ts
 ```
 
-This will:
-- Create/use the "skillloop-plan-eval" dataset
-- Test plan generation with 5 different interest/goal combinations
-- Evaluate using IsJson and Usefulness metrics
-- Output results URL for viewing in Opik dashboard
+Metrics evaluated:
+- **IsJson** - Valid JSON output
+- **Usefulness** - Quality of generated content
+- **TimeBudgetFit** - Fits user's time constraints
 
 ---
 
@@ -247,6 +259,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for lifelong learners**
 
-[Report Bug](https://github.com/kjh0209/Curiosity-to-Plan/issues) · [Request Feature](https://github.com/kjh0209/Curiosity-to-Plan/issues)
+[Report Bug](https://github.com/yourusername/skillloop/issues) · [Request Feature](https://github.com/yourusername/skillloop/issues)
 
 </div>

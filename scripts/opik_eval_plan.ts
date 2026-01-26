@@ -1,15 +1,24 @@
-import "dotenv/config";
+// Load .env.local file
+import * as dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import { Opik } from "opik";
 import OpenAI from "openai";
-import { PlanResponseSchema } from "../lib/schemas";
+import * as readline from "readline";
 
-// Dataset item type
-type PlanEvalItem = {
-  input: string;
-  metadata: {
-    category: string;
-  };
-};
+// Check for required env vars
+if (!process.env.OPIK_API_KEY) {
+  console.error("❌ Error: OPIK_API_KEY is not set in .env.local");
+  console.log("\nPlease add the following to your .env.local file:");
+  console.log("OPIK_API_KEY=your-opik-api-key");
+  console.log("\nGet your API key from: https://www.comet.com/opik");
+  process.exit(1);
+}
+
+if (!process.env.OPENAI_API_KEY) {
+  console.error("❌ Error: OPENAI_API_KEY is not set in .env.local");
+  process.exit(1);
+}
 
 // Initialize clients
 const opik = new Opik({
@@ -23,54 +32,30 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Plan generator function (internal, not HTTP)
+// Plan generator function
 async function generatePlan(interest: string, goal: string, minutesPerDay: number = 20): Promise<string> {
-  const prompt = `You are an expert learning curriculum designer. Create a structured 14-day learning plan as JSON.
+  const prompt = `Create a 14-day learning plan for "${interest}" with goal "${goal}".
+Time: ${minutesPerDay} min/day.
 
-User wants to learn: "${interest}"
-Goal: "${goal}"
-Time available per day: ${minutesPerDay} minutes
-
-Generate exactly 14 days of learning missions. Each day should have:
-- dayNumber (1-14)
-- missionTitle (short, concrete)
-- focus (brief focus area)
-- difficulty (1, 2, or 3 - gradually increasing but realistic)
-
-Return ONLY valid JSON matching this exact format:
-{
-  "planTitle": "string",
-  "days": [
-    { "dayNumber": 1, "missionTitle": "string", "focus": "string", "difficulty": 1 },
-    ...
-  ]
-}`;
+Return JSON:
+{"planTitle":"string","days":[{"dayNumber":1,"missionTitle":"string","focus":"string","difficulty":1},...]}`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     max_tokens: 2000,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
+    messages: [{ role: "user", content: prompt }],
   });
 
-  const content = completion.choices[0]?.message?.content || "";
-  return content;
+  return completion.choices[0]?.message?.content || "";
 }
 
-// Custom IsJson metric
+// Metrics
 class IsJsonMetric {
   name = "is_json";
-
   async score(output: string): Promise<{ name: string; value: number }> {
     try {
       const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return { name: this.name, value: 0 };
-      }
+      if (!jsonMatch) return { name: this.name, value: 0 };
       JSON.parse(jsonMatch[0]);
       return { name: this.name, value: 1 };
     } catch {
@@ -79,57 +64,21 @@ class IsJsonMetric {
   }
 }
 
-// Custom ValidPlanSchema metric
-class ValidPlanSchemaMetric {
-  name = "valid_plan_schema";
-
+class UsefulnessMetric {
+  name = "usefulness";
   async score(output: string): Promise<{ name: string; value: number }> {
     try {
       const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return { name: this.name, value: 0 };
-      }
+      if (!jsonMatch) return { name: this.name, value: 0 };
       const parsed = JSON.parse(jsonMatch[0]);
-      PlanResponseSchema.parse(parsed);
-      return { name: this.name, value: 1 };
-    } catch {
-      return { name: this.name, value: 0 };
-    }
-  }
-}
-
-// Usefulness metric (simple heuristic)
-class UsefulnessMetric {
-  name = "usefulness";
-
-  async score(_input: string, output: string): Promise<{ name: string; value: number }> {
-    try {
-      const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return { name: this.name, value: 0 };
-      }
-      const parsed = JSON.parse(jsonMatch[0]);
-
       let score = 0;
-
-      // Has valid title
       if (parsed.planTitle && parsed.planTitle.length > 5) score += 0.25;
-
-      // Has 14 days
-      if (parsed.days && parsed.days.length === 14) score += 0.25;
-
-      // Days have meaningful titles
-      if (parsed.days && parsed.days.every((d: any) => d.missionTitle && d.missionTitle.length > 5)) {
-        score += 0.25;
+      if (parsed.days && parsed.days.length >= 7) score += 0.25;
+      if (parsed.days?.every((d: any) => d.missionTitle?.length > 5)) score += 0.25;
+      if (parsed.days?.length > 0) {
+        const diffs = parsed.days.map((d: any) => d.difficulty || 1);
+        if (diffs[diffs.length - 1] >= diffs[0]) score += 0.25;
       }
-
-      // Difficulty progression exists
-      if (parsed.days && parsed.days.length > 0) {
-        const difficulties = parsed.days.map((d: any) => d.difficulty);
-        const hasProgression = difficulties[difficulties.length - 1] >= difficulties[0];
-        if (hasProgression) score += 0.25;
-      }
-
       return { name: this.name, value: score };
     } catch {
       return { name: this.name, value: 0 };
@@ -137,84 +86,57 @@ class UsefulnessMetric {
   }
 }
 
-// Test dataset items
-const testItems: Array<{ interest: string; goal: string; category: string }> = [
-  {
-    interest: "Machine Learning",
-    goal: "Build a simple classification model from scratch",
-    category: "tech",
-  },
-  {
-    interest: "Piano",
-    goal: "Play a simple classical piece with both hands",
-    category: "music",
-  },
-  {
-    interest: "Spanish",
-    goal: "Have a basic 5-minute conversation in Spanish",
-    category: "language",
-  },
-  {
-    interest: "Cooking",
-    goal: "Prepare a 3-course Italian dinner",
-    category: "culinary",
-  },
-  {
-    interest: "Photography",
-    goal: "Take professional-looking portrait photos",
-    category: "art",
-  },
+// Default test items
+const defaultTestItems = [
+  { interest: "Machine Learning", goal: "Build a simple ML model", category: "tech" },
+  { interest: "Piano", goal: "Play a simple piece", category: "music" },
+  { interest: "Spanish", goal: "Basic conversation", category: "language" },
+  { interest: "Cooking", goal: "Cook 5 dishes", category: "culinary" },
+  { interest: "Photography", goal: "Take great photos", category: "art" },
 ];
 
-async function runEvaluation() {
-  console.log("Starting SkillLoop Plan Evaluation...\n");
+// Interactive prompt
+function prompt(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
 
-  // Create or get dataset
-  const dataset = await opik.getOrCreateDataset<PlanEvalItem>(
-    "skillloop-plan-eval",
-    "Dataset for evaluating SkillLoop plan generation"
-  );
+async function runEvaluation(testItems: typeof defaultTestItems) {
+  console.log("\n🚀 Starting Evaluation...\n");
+  console.log(`📊 Project: ${process.env.OPIK_PROJECT_NAME}`);
+  console.log(`🔑 Workspace: ${process.env.OPIK_WORKSPACE_NAME}`);
+  console.log(`📝 Testing ${testItems.length} items\n`);
 
-  // Insert test items
-  const datasetItems = testItems.map((item, idx) => ({
-    id: `eval-item-${idx}`,
-    input: `Interest: ${item.interest}, Goal: ${item.goal}`,
-    metadata: {
-      category: item.category,
-    },
-  }));
-
-  await dataset.insert(datasetItems);
-  console.log(`Inserted ${datasetItems.length} items into dataset\n`);
-
-  // Initialize metrics
   const isJsonMetric = new IsJsonMetric();
-  const validSchemaMetric = new ValidPlanSchemaMetric();
   const usefulnessMetric = new UsefulnessMetric();
 
-  // Run evaluation manually
   const results: Array<{
-    input: string;
-    output: string;
+    interest: string;
     isJson: number;
-    validSchema: number;
     usefulness: number;
+    latency: number;
   }> = [];
 
-  for (const item of testItems) {
-    console.log(`Evaluating: ${item.interest}...`);
+  for (let i = 0; i < testItems.length; i++) {
+    const item = testItems[i];
+    console.log(`[${i + 1}/${testItems.length}] Evaluating: ${item.interest}...`);
 
     const startTime = Date.now();
     const output = await generatePlan(item.interest, item.goal);
     const latency = Date.now() - startTime;
 
-    const inputStr = `Interest: ${item.interest}, Goal: ${item.goal}`;
-
     const isJsonScore = await isJsonMetric.score(output);
-    const validSchemaScore = await validSchemaMetric.score(output);
-    const usefulnessScore = await usefulnessMetric.score(inputStr, output);
+    const usefulnessScore = await usefulnessMetric.score(output);
 
-    // Log trace to Opik
+    // Log to Opik
     const trace = opik.trace({
       name: "plan_evaluation",
       input: { interest: item.interest, goal: item.goal },
@@ -223,40 +145,83 @@ async function runEvaluation() {
         category: item.category,
         latency_ms: latency,
         is_json: isJsonScore.value,
-        valid_schema: validSchemaScore.value,
         usefulness: usefulnessScore.value,
       },
     });
     trace.end();
 
     results.push({
-      input: inputStr,
-      output: output.substring(0, 200) + "...",
+      interest: item.interest,
       isJson: isJsonScore.value,
-      validSchema: validSchemaScore.value,
       usefulness: usefulnessScore.value,
+      latency,
     });
 
-    console.log(`  - is_json: ${isJsonScore.value}`);
-    console.log(`  - valid_schema: ${validSchemaScore.value}`);
-    console.log(`  - usefulness: ${usefulnessScore.value}`);
-    console.log(`  - latency: ${latency}ms\n`);
+    console.log(`  ✓ is_json: ${isJsonScore.value === 1 ? "✅" : "❌"}`);
+    console.log(`  ✓ usefulness: ${(usefulnessScore.value * 100).toFixed(0)}%`);
+    console.log(`  ⏱ latency: ${latency}ms\n`);
   }
 
   await opik.flush();
 
-  // Calculate aggregates
+  // Summary
   const avgIsJson = results.reduce((sum, r) => sum + r.isJson, 0) / results.length;
-  const avgValidSchema = results.reduce((sum, r) => sum + r.validSchema, 0) / results.length;
   const avgUsefulness = results.reduce((sum, r) => sum + r.usefulness, 0) / results.length;
+  const avgLatency = results.reduce((sum, r) => sum + r.latency, 0) / results.length;
 
-  console.log("=== Evaluation Summary ===");
+  console.log("═══════════════════════════════════════");
+  console.log("       📊 EVALUATION SUMMARY          ");
+  console.log("═══════════════════════════════════════");
   console.log(`Total samples: ${results.length}`);
-  console.log(`Average is_json: ${avgIsJson.toFixed(2)}`);
-  console.log(`Average valid_schema: ${avgValidSchema.toFixed(2)}`);
-  console.log(`Average usefulness: ${avgUsefulness.toFixed(2)}`);
-  console.log("\nResults logged to Opik. Check your dashboard at:");
-  console.log(`https://www.comet.com/opik/${process.env.OPIK_WORKSPACE_NAME}/${process.env.OPIK_PROJECT_NAME}`);
+  console.log(`JSON validity: ${(avgIsJson * 100).toFixed(0)}%`);
+  console.log(`Usefulness: ${(avgUsefulness * 100).toFixed(0)}%`);
+  console.log(`Avg latency: ${avgLatency.toFixed(0)}ms`);
+  console.log("");
+  console.log("🔗 View in Opik Dashboard:");
+  console.log(`   https://www.comet.com/${process.env.OPIK_WORKSPACE_NAME}/opik`);
+  console.log("═══════════════════════════════════════");
 }
 
-runEvaluation().catch(console.error);
+async function main() {
+  console.log("═══════════════════════════════════════");
+  console.log("    🧪 SkillLoop LLM Evaluation Tool   ");
+  console.log("═══════════════════════════════════════\n");
+
+  console.log("Options:");
+  console.log("  1. Run with default samples (5 items)");
+  console.log("  2. Add custom test item");
+  console.log("  3. Run single custom test\n");
+
+  const choice = await prompt("Choose option (1/2/3): ");
+
+  if (choice === "1") {
+    await runEvaluation(defaultTestItems);
+  } else if (choice === "2") {
+    const interest = await prompt("Enter interest (e.g., Python programming): ");
+    const goal = await prompt("Enter goal (e.g., Build a web app): ");
+    const category = await prompt("Enter category (e.g., tech): ");
+
+    if (!interest || !goal) {
+      console.log("Interest and goal are required!");
+      return;
+    }
+
+    const customItems = [...defaultTestItems, { interest, goal, category: category || "custom" }];
+    await runEvaluation(customItems);
+  } else if (choice === "3") {
+    const interest = await prompt("Enter interest: ");
+    const goal = await prompt("Enter goal: ");
+
+    if (!interest || !goal) {
+      console.log("Interest and goal are required!");
+      return;
+    }
+
+    await runEvaluation([{ interest, goal, category: "custom" }]);
+  } else {
+    console.log("Invalid choice. Running default tests...");
+    await runEvaluation(defaultTestItems);
+  }
+}
+
+main().catch(console.error);

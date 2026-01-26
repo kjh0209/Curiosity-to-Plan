@@ -1,4 +1,5 @@
 import { Opik } from "opik";
+import { prisma } from "./db";
 
 let opikClient: Opik | null = null;
 
@@ -22,6 +23,7 @@ export async function withOpikTrace<T>(
 ): Promise<T> {
   const opik = getOpikClient();
   const startTime = Date.now();
+  let traceId = "";
 
   try {
     const output = await fn();
@@ -40,6 +42,8 @@ export async function withOpikTrace<T>(
       },
     });
 
+    traceId = (trace as any).id || `trace_${Date.now()}`;
+
     // Create an LLM span for the trace
     const span = trace.span({
       name: `${traceName}_llm_call`,
@@ -55,6 +59,21 @@ export async function withOpikTrace<T>(
     span.end();
     trace.end();
     await opik.flush();
+
+    // Log trace to database for display in UI
+    try {
+      await prisma.traceLog.create({
+        data: {
+          traceId,
+          traceName,
+          userId: (input.userId as string) || null,
+          metadata: JSON.stringify({ ...metadata, latency_ms }),
+        },
+      });
+    } catch (dbError) {
+      console.warn("Failed to log trace to database:", dbError);
+    }
+
     return output;
   } catch (error) {
     const latency_ms = Date.now() - startTime;
@@ -68,8 +87,25 @@ export async function withOpikTrace<T>(
         error: true,
       },
     });
+
+    traceId = (trace as any).id || `trace_${Date.now()}`;
     trace.end();
     await opik.flush();
+
+    // Log error trace to database
+    try {
+      await prisma.traceLog.create({
+        data: {
+          traceId,
+          traceName,
+          userId: (input.userId as string) || null,
+          metadata: JSON.stringify({ ...metadata, latency_ms, error: true }),
+        },
+      });
+    } catch (dbError) {
+      console.warn("Failed to log error trace to database:", dbError);
+    }
+
     throw error;
   }
 }
