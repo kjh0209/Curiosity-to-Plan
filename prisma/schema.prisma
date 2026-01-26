@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String     @id @default(cuid())
+  interest          String
+  goal              String
+  minutesPerDay     Int        @default(20)
+  streak            Int        @default(0)
+  lastCompletedDate DateTime?
+  plans             Plan[]
+}
+
+model Plan {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  planTitle String
+  createdAt DateTime   @default(now())
+  days      DayPlan[]
+}
+
+model DayPlan {
+  id        String   @id @default(cuid())
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id])
+  dayNumber Int
+  missionTitle String
+  focus     String
+  difficulty Int      @default(1)
+  status    String   @default("LOCKED") // LOCKED | READY | DONE
+  steps     String?  // JSON stringified array
+  quiz      String?  // JSON stringified array
+  result    String?  // JSON stringified grade result
+  
+  @@unique([planId, dayNumber])
+}
