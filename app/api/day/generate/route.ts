@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { withOpikTrace } from "@/lib/opik";
 import { prisma } from "@/lib/db";
 import { searchYouTubeVideos } from "@/lib/youtube";
 import { getBestTechArticle } from "@/lib/articles";
 import { getBestMediumArticle } from "@/lib/medium";
 import { getBestWikiPage } from "@/lib/wikipedia";
+import { generateWithAI } from "@/lib/ai-provider";
 import { z } from "zod";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const DayMissionResponseSchema = z.object({
   steps: z.array(z.string()).min(3).max(10),
@@ -20,12 +16,18 @@ const DayMissionResponseSchema = z.object({
       type: z.enum(["mcq", "short", "short_answer"]),
       choices: z.array(z.string()).optional(),
       answer: z.string(),
+      alternativeAnswers: z.array(z.string()).optional(),
       explanation: z.string().optional(),
     })
   ).length(3),
   searchTerms: z.array(z.string()).min(2).max(4),
   isTechTopic: z.boolean().default(true),
   wikipediaSearchTerm: z.string().optional(),
+  recommendedBook: z.object({
+    title: z.string(),
+    author: z.string(),
+    reason: z.string()
+  }).optional(),
 });
 
 // Language display names
@@ -56,12 +58,41 @@ export async function POST(req: NextRequest) {
     const resourceSort = (user.resourceSort || "relevance") as "relevance" | "viewCount" | "rating";
     const languageName = languageNames[userLanguage] || "English";
 
+    // RAG: Fetch recent negative feedback to improve quality
+    const negativeFeedback = await prisma.userFeedback.findMany({
+      where: {
+        userId,
+        OR: [
+          { contentRating: { lte: 2 } },
+          { difficultyRating: { lte: 2 } }
+        ]
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { dayPlan: true }
+    });
+
+    let ragContext = "";
+    if (negativeFeedback.length > 0) {
+      const feedbackTexts = negativeFeedback.map((f: any) =>
+        `- On "${f.dayPlan?.missionTitle}": User rated it poorly (${f.contentRating}/5). Feedback: "${f.textFeedback || 'No details'}"`
+      ).join("\n");
+
+      ragContext = `
+IMPORTANT - AVOID PREVIOUS MISTAKES:
+The user has given negative feedback on previous content. You MUST avoid these patterns:
+${feedbackTexts}
+Ensure this new content addresses these concerns (e.g., if previous was too hard, make this easier).
+`;
+    }
+
     const result = await withOpikTrace(
       "generate_day_mission",
-      { dayNumber, missionTitle, focus, difficulty, language: userLanguage },
+      { dayNumber, missionTitle, focus, difficulty, language: userLanguage, ragContext },
       async () => {
         const prompt = `Create day ${dayNumber} learning content for "${user.interest}" in ${languageName}.
 IMPORTANT: ALL CONTENT MUST BE IN ${languageName} (except for search terms if English finds better results).
+${ragContext}
 
 Mission: "${missionTitle}"
 Focus: "${focus}"
@@ -74,34 +105,34 @@ Create:
 1. ${Math.max(3, Math.min(8, Math.floor(user.minutesPerDay / 5)))} concrete learning steps (in ${languageName})
 2. 3 HIGH-QUALITY quiz questions (in ${languageName}):
    - Questions must be specific and test actual knowledge.
-   - For MCQ: 4 plausible choices.
+   - For MCQ: 4 plausible choices with REAL CONTENT (not "A","B","C","D"). The "answer" field MUST be the EXACT FULL TEXT of the correct choice, NOT a letter.
    - For short answer: Answer must be a specific term (1-3 words).
+   - For short answer: If the answer is a CONCEPT that can be expressed in multiple languages, include an "alternativeAnswers" array with ALL common equivalent terms across languages. Always include the English equivalent, and add equivalents in other languages the concept is commonly known by (e.g., answer "인터페이스" → alternativeAnswers: ["interface"], answer "インターフェース" → alternativeAnswers: ["interface", "인터페이스"], answer "interfaz" → alternativeAnswers: ["interface"]). Do NOT include alternatives for specific COMMANDS, KEYWORDS, or CODE SYNTAX that must be typed exactly (e.g., "type", "const", "npm install").
 3. 3-4 search keywords for YouTube/Articles.
    - For Non-Tech topics (e.g. Guitar), use simple English or Korean terms.
 4. Classify topic:
    - "isTechTopic": true if it is programming/IT/engineering. false for music, art, sports, etc.
    - "wikipediaSearchTerm": The single most relevant Wikipedia page title for TODAY's lesson.
+5. "recommendedBook": Recommend ONE specific book that is best for TODAY's topic.
+   - title, author, reason (why it fits today's mission, 1 sentence).
 
 Return ONLY valid JSON:
 {
   "steps": ["Step 1...", "Step 2..."],
   "quiz": [
-    {"q":"Question?","type":"mcq","choices":["A","B","C","D"],"answer":"A","explanation":"Explanation..."},
-    ...
+    {"q":"Which pattern separates UI from logic?","type":"mcq","choices":["MVC 패턴","싱글톤 패턴","팩토리 패턴","옵저버 패턴"],"answer":"MVC 패턴","explanation":"MVC separates Model, View, Controller."},
+    {"q":"What concept defines a contract for classes?","type":"short","answer":"인터페이스","alternativeAnswers":["interface"],"explanation":"Interfaces define contracts."},
+    {"q":"Which keyword declares a constant?","type":"short","answer":"const","explanation":"const declares a constant variable."}
   ],
   "searchTerms": ["topic 1", "topic 2"],
   "isTechTopic": true,
-  "wikipediaSearchTerm": "Exact Wiki Title"
+  "wikipediaSearchTerm": "Exact Wiki Title",
+  "recommendedBook": { "title": "Book Title", "author": "Author Name", "reason": "Reason..." }
 }`;
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          max_tokens: 2500,
-          temperature: 0.7,
-          messages: [{ role: "user", content: prompt }],
-        });
 
-        const content = completion.choices[0]?.message?.content || "";
+        const aiResult = await generateWithAI(userId, prompt, 2500);
+        const content = aiResult.text;
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("No JSON found");
 
@@ -124,10 +155,15 @@ Return ONLY valid JSON:
     // Fetch resources
     const resources: any[] = [];
 
+    // Calculate max video duration: allocate ~60% of daily time for videos, split across searches
+    // For 20 min/day: max 12 min per video, for 30 min/day: max 18 min per video
+    const maxVideoMinutes = Math.max(5, Math.floor((user.minutesPerDay || 20) * 0.6));
+
     // 1. YouTube
     for (const term of result.searchTerms.slice(0, 3)) {
       const query = `${user.interest} ${term}`;
-      const ytResult = await searchYouTubeVideos(query, userLanguage, resourceSort, 1);
+      // Request more results to account for filtering
+      const ytResult = await searchYouTubeVideos(query, userLanguage, resourceSort, 5, maxVideoMinutes);
 
       if (ytResult.videos.length > 0) {
         const video = ytResult.videos[0];
@@ -137,6 +173,8 @@ Return ONLY valid JSON:
           url: video.url,
           description: video.viewCount ? `${video.channelTitle} • ${video.viewCount}` : video.channelTitle,
           thumbnail: video.thumbnail,
+          duration: video.duration,
+          durationMinutes: video.durationMinutes,
         });
       }
     }
@@ -189,6 +227,8 @@ Return ONLY valid JSON:
       });
     }
 
+    // 4. Textbook Recommendation (Removed: Now using daily specific book from AI)
+
     // Update DayPlan
     const dayPlan = await prisma.dayPlan.findFirst({
       where: {
@@ -208,6 +248,7 @@ Return ONLY valid JSON:
         steps: JSON.stringify(result.steps),
         quiz: JSON.stringify(result.quiz),
         resources: JSON.stringify(resources),
+        recommendedBook: result.recommendedBook ? JSON.stringify(result.recommendedBook) : null,
       },
     });
 
@@ -215,6 +256,7 @@ Return ONLY valid JSON:
       steps: result.steps,
       quiz: result.quiz,
       resources,
+      recommendedBook: result.recommendedBook,
     });
   } catch (error) {
     console.error("Day mission generation error:", error);

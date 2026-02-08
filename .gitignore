@@ -39,3 +39,11 @@ next-env.d.ts
 *.db-journal
 prisma/dev.db
 prisma/dev.db-journal
+
+
+
+gen-lang-client-0901929133-d0c4fcdae059.json
+
+.agent
+.claude
+do.txt

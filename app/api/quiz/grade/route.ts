@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { withOpikTrace } from "@/lib/opik";
 import { prisma } from "@/lib/db";
-import { QuizGradeResponseSchema } from "@/lib/schemas";
+import { generateWithAI } from "@/lib/ai-provider";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Resolve MCQ letter answer (e.g., "A") to actual choice text
+function resolveAnswer(question: any): string {
+  if (question.type === "mcq" && Array.isArray(question.choices)) {
+    const ans = question.answer.trim();
+    if (ans.length === 1) {
+      const idx = ans.toLowerCase().charCodeAt(0) - 97;
+      if (idx >= 0 && idx < question.choices.length) {
+        return question.choices[idx];
+      }
+    }
+  }
+  return question.answer;
+}
 
 // Helper to check answer correctness (Same logic as Frontend to ensure consistency)
 function isAnswerCorrect(question: any, userAnswer: string): boolean {
@@ -25,20 +34,21 @@ function isAnswerCorrect(question: any, userAnswer: string): boolean {
       const letter = String.fromCharCode(97 + selectedIndex); // 'a', 'b', etc.
       if (letter === cleanCorrect) return true;
     }
+    // Also match against resolved answer text
+    const resolved = resolveAnswer(question).trim().toLowerCase();
+    if (cleanUser === resolved) return true;
   }
 
-
-  // 3. Substring/Fuzzy match for short answers
-  if (cleanUser.includes(cleanCorrect)) return true;
-  if (cleanCorrect.includes(cleanUser) && cleanUser.length > 3) return true;
-
-  // 4. Comma-separated list match
-  if (cleanCorrect.includes(",")) {
-    const parts = cleanCorrect.split(",").map((p: string) => p.trim());
-    if (parts.some((part: string) => cleanUser.includes(part) || part.includes(cleanUser))) {
-      return true;
+  // 3. Alternative answers match (for bilingual concept equivalents)
+  if (Array.isArray(question.alternativeAnswers)) {
+    for (const alt of question.alternativeAnswers) {
+      if (cleanUser === alt.trim().toLowerCase()) return true;
     }
   }
+
+  // 4. Substring/Fuzzy match for short answers
+  if (cleanUser.includes(cleanCorrect)) return true;
+  if (cleanCorrect.includes(cleanUser) && cleanUser.length > 3) return true;
 
   return false;
 }
@@ -51,7 +61,7 @@ export async function POST(req: NextRequest) {
       dayNumber,
       quiz,
       userAnswers,
-      currentDifficulty,
+      currentDifficulty = 1,
       resourcesCompleted,
     } = await req.json();
 
@@ -74,7 +84,7 @@ export async function POST(req: NextRequest) {
           return {
             q: q.q,
             userAnswer: userAnswers[i],
-            correctAnswer: q.answer,
+            correctAnswer: resolveAnswer(q),
             isCorrect,
           };
         });
@@ -110,13 +120,9 @@ Return ONLY JSON:
 }
 (Note: difficultySignal should be based on: 3->"TOO_EASY", 2->"ON_TRACK", <=1->"TOO_HARD")`;
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          max_tokens: 200,
-          messages: [{ role: "user", content: prompt }],
-        });
 
-        const content = completion.choices[0]?.message?.content || "";
+        const aiResult = await generateWithAI(userId, prompt, 200);
+        const content = aiResult.text;
         const jsonMatch = content.match(/\{[\s\S]*\}/);
 
         // Default values if LLM fails

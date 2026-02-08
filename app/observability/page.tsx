@@ -44,7 +44,8 @@ export default function ObservabilityPage() {
         loadTraces();
     }, [router, session, status]);
 
-    const opikProjectUrl = `https://www.comet.com/${process.env.NEXT_PUBLIC_OPIK_WORKSPACE_NAME || "your-workspace"}/opik/projects?name=${process.env.NEXT_PUBLIC_OPIK_PROJECT_NAME || "skillloop"}`;
+    // Opik project URL for future use
+    // const opikProjectUrl = `https://www.comet.com/${process.env.NEXT_PUBLIC_OPIK_WORKSPACE_NAME || "your-workspace"}/opik/projects?name=${process.env.NEXT_PUBLIC_OPIK_PROJECT_NAME || "skillloop"}`;
 
     if (status === "loading" || loading) {
         return (

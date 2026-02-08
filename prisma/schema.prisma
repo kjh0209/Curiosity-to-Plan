@@ -27,22 +27,45 @@ model User {
   streak            Int        @default(0)
   freezeCount       Int        @default(0)
   lastCompletedDate DateTime?
+  
+  // API Key Management
+  openaiApiKey      String?    // Encrypted user's own OpenAI API key
+  openaiModel       String     @default("gpt-4o-mini") // gpt-4o-mini | gpt-4o | gpt-3.5-turbo
+  
+  // Token Management (Monthly)
+  openaiMonthlyTokenLimit Int  @default(2000000) // Default ~2M tokens ($0.30 for mini)
+  openaiTokenUsagePeriod  Int  @default(0)       // Usage in current period
+  openaiPeriodStart       DateTime @default(now()) // Start of current billing period
+  openaiUsageToday        Int  @default(0)       // Keep for backward compat/daily tracking
+
+  // Gemini API
+  geminiApiKey      String?    
+  geminiModel       String     @default("gemini-2.0-flash")
+  geminiMonthlyTokenLimit Int  @default(5000000) // Higher limit for free tier
+  geminiTokenUsagePeriod  Int  @default(0)
+  geminiPeriodStart       DateTime @default(now())
+  geminiUsageToday        Int  @default(0)
+  
+  lastUsageReset    DateTime   @default(now()) 
+  
   createdAt         DateTime   @default(now())
   plans             Plan[]
   quizAttempts      QuizAttempt[]
 }
 
 model Plan {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planTitle     String
-  totalDays     Int        @default(14)
-  minutesPerDay Int        @default(20)
-  skillGraph    String?    // JSON stringified skill graph
-  createdAt     DateTime   @default(now())
-  days          DayPlan[]
-  quizAttempts  QuizAttempt[]
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planTitle       String
+  totalDays       Int        @default(14)
+  minutesPerDay   Int        @default(20)
+  language        String     @default("en")  // Language the plan was created in
+  skillGraph      String?    // JSON stringified skill graph
+  recommendedBook String?    // JSON: { title, author, totalPages, amazonUrl?, description }
+  createdAt       DateTime   @default(now())
+  days            DayPlan[]
+  quizAttempts    QuizAttempt[]
 }
 
 model DayPlan {
@@ -54,10 +77,24 @@ model DayPlan {
   focus        String
   difficulty   Int      @default(1)
   status       String   @default("LOCKED") // LOCKED | READY | DONE
+  recommendedBook String? // JSON: { title, author, reason }
   steps        String?  // JSON stringified array
   quiz         String?  // JSON stringified array
-  resources    String?  // JSON array of {type, title, url, description}
+  resources    String?  // JSON array of {type, title, url, description, duration?}
   result       String?  // JSON stringified grade result
+  
+  // AI Content Caching (Language-aware)
+  // Format: { "en": { ...data... }, "ko": { ...data... } }
+  slides       String?  // JSON cache of generated slides per language
+  article      String?  // JSON cache of generated article per language
+  
+  // Time Management
+  estimatedMinutes Int      @default(20)  // AI-estimated time
+  actualMinutes    Int?                    // User's actual time spent
+  startedAt        DateTime?               // When user started learning
+  completedAt      DateTime?               // When user completed
+  
+  feedbacks    UserFeedback[]
   
   @@unique([planId, dayNumber])
 }
@@ -83,4 +120,16 @@ model TraceLog {
   userId    String?
   metadata  String?  // JSON
   createdAt DateTime @default(now())
+}
+
+model UserFeedback {
+  id               String   @id @default(cuid())
+  userId           String
+  dayPlanId        String?
+  dayPlan          DayPlan? @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  contentRating    Int      // 1-5: Content quality
+  difficultyRating Int      // 1-5: Appropriateness of difficulty
+  resourceRating   Int      // 1-5: Resource usefulness
+  textFeedback     String?  // Free text feedback
+  createdAt        DateTime @default(now())
 }

@@ -8,6 +8,8 @@ interface YouTubeVideo {
     channelTitle: string;
     thumbnail: string;
     viewCount?: string;
+    duration?: string;       // Formatted duration like "5:30"
+    durationMinutes?: number; // Duration in minutes for time tracking
     url: string;
 }
 
@@ -31,7 +33,8 @@ export async function searchYouTubeVideos(
     query: string,
     language: string = "en",
     order: SortOrder = "relevance",
-    maxResults: number = 3
+    maxResults: number = 3,
+    maxDurationMinutes?: number  // Filter out videos longer than this
 ): Promise<YouTubeSearchResult> {
     if (!YOUTUBE_API_KEY) {
         console.warn("YOUTUBE_API_KEY not set, returning search URL fallback");
@@ -85,10 +88,10 @@ export async function searchYouTubeVideos(
             return { videos: [], error: "No videos found" };
         }
 
-        // Get video statistics for view counts
+        // Get video statistics and duration
         const videoIds = searchData.items.map((item: any) => item.id.videoId).join(",");
         const statsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
-        statsUrl.searchParams.set("part", "statistics");
+        statsUrl.searchParams.set("part", "statistics,contentDetails");
         statsUrl.searchParams.set("id", videoIds);
         statsUrl.searchParams.set("key", YOUTUBE_API_KEY);
 
@@ -96,17 +99,29 @@ export async function searchYouTubeVideos(
         const statsData = statsResponse.ok ? await statsResponse.json() : { items: [] };
 
         // Build video objects
-        const videos: YouTubeVideo[] = searchData.items.map((item: any, idx: number) => {
+        let videos: YouTubeVideo[] = searchData.items.map((item: any, idx: number) => {
             const stats = statsData.items?.[idx]?.statistics || {};
+            const contentDetails = statsData.items?.[idx]?.contentDetails || {};
+            const { duration, durationMinutes } = parseDuration(contentDetails.duration);
+
             return {
                 videoId: item.id.videoId,
                 title: item.snippet.title,
                 channelTitle: item.snippet.channelTitle,
                 thumbnail: item.snippet.thumbnails?.medium?.url || "",
                 viewCount: stats.viewCount ? formatViewCount(parseInt(stats.viewCount)) : undefined,
+                duration,
+                durationMinutes,
                 url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
             };
         });
+
+        // Filter by max duration if specified
+        if (maxDurationMinutes && maxDurationMinutes > 0) {
+            const originalCount = videos.length;
+            videos = videos.filter(v => !v.durationMinutes || v.durationMinutes <= maxDurationMinutes);
+            console.log(`[YouTube] Filtered ${originalCount - videos.length} videos exceeding ${maxDurationMinutes} min`);
+        }
 
         return { videos };
     } catch (error) {
@@ -143,4 +158,30 @@ function formatViewCount(count: number): string {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M views`;
     if (count >= 1000) return `${(count / 1000).toFixed(0)}K views`;
     return `${count} views`;
+}
+
+/**
+ * Parse YouTube ISO 8601 duration format (PT#H#M#S) to readable string and minutes
+ */
+function parseDuration(isoDuration: string | undefined): { duration?: string; durationMinutes?: number } {
+    if (!isoDuration) return {};
+
+    // Parse ISO 8601 duration: PT1H30M45S
+    const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return {};
+
+    const hours = parseInt(match[1] || "0");
+    const minutes = parseInt(match[2] || "0");
+    const seconds = parseInt(match[3] || "0");
+
+    const totalMinutes = hours * 60 + minutes + seconds / 60;
+
+    let duration: string;
+    if (hours > 0) {
+        duration = `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    } else {
+        duration = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    return { duration, durationMinutes: Math.round(totalMinutes * 10) / 10 };
 }

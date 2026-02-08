@@ -27,6 +27,12 @@ export async function GET(req: NextRequest) {
             },
         });
 
+        // Fetch user language preference
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { language: true },
+        });
+
         const planSummaries = plans.map((plan) => ({
             id: plan.id,
             planTitle: plan.planTitle,
@@ -35,7 +41,10 @@ export async function GET(req: NextRequest) {
             totalDays: plan.days.length,
         }));
 
-        return NextResponse.json({ plans: planSummaries });
+        return NextResponse.json({
+            plans: planSummaries,
+            language: user?.language || "en"
+        });
     } catch (error) {
         console.error("Plans fetch error:", error);
         return NextResponse.json(

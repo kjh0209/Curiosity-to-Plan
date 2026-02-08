@@ -1,13 +1,6 @@
 
 import Parser from "rss-parser";
 
-interface MediumArticle {
-    title: string;
-    link: string;
-    creator: string;
-    pubDate: string;
-}
-
 const parser = new Parser();
 
 export async function getBestMediumArticle(tag: string): Promise<{ title: string; url: string; description: string } | null> {
