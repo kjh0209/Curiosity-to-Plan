@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       totalDays = 14,
       riskStyle = "BALANCED",
       baselineLevel = "BEGINNER",
-      language = "ko",
+      language = "en",
       resourceSort = "viewCount"
     } = await req.json();
 

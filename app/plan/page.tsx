@@ -57,7 +57,7 @@ function PlanContent() {
   const [error, setError] = useState("");
 
   // Localization
-  const [language, setLanguage] = useState<Language>("ko");
+  const [language, setLanguage] = useState<Language>("en");
   const dict = getDictionary(language);
 
   // Translation state for plan/day titles

@@ -78,7 +78,7 @@ export default function DayPage() {
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
 
   // Localization state - Default to 'ko' as per request, but will fetch profile
-  const [language, setLanguage] = useState<Language>("ko");
+  const [language, setLanguage] = useState<Language>("en");
   const dict = getDictionary(language);
 
   // Missing State Variables
@@ -108,7 +108,7 @@ export default function DayPage() {
         // 1. Fetch User Profile for Language Preference (PRIORITY)
         const profileRes = await fetch(`/api/profile?userId=${userId}`);
         const profileData = await profileRes.json();
-        const userLang = (profileData.profile?.language || "ko") as Language; // Default to Korean if missing
+        const userLang = (profileData.profile?.language || "en") as Language;
         setLanguage(userLang);
 
         // 2. Fetch Plan Data
@@ -189,7 +189,10 @@ export default function DayPage() {
             }),
           });
 
-          if (!genRes.ok) throw new Error("Failed to generate day content");
+          if (!genRes.ok) {
+            const errData = await genRes.json().catch(() => ({}));
+            throw new Error(errData.error || "Failed to generate day content");
+          }
 
           const genData = await genRes.json();
           const dayDataObj: DayData = {
@@ -341,7 +344,10 @@ export default function DayPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to grade quiz");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to grade quiz");
+      }
 
       const gradeResult = await response.json();
 

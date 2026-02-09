@@ -14,7 +14,7 @@ export default function NewPlanPage() {
     const [totalDays, setTotalDays] = useState(14);
     const [riskStyle, setRiskStyle] = useState("BALANCED");
     const [baselineLevel, setBaselineLevel] = useState("BEGINNER");
-    const [language, setLanguage] = useState("ko");
+    const [language, setLanguage] = useState("en");
     const [resourceSort, setResourceSort] = useState("relevance");
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);

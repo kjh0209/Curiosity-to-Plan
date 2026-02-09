@@ -56,7 +56,10 @@ export default function ArticlePage() {
                     }),
                 });
 
-                if (!res.ok) throw new Error("Failed to load article");
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to load article");
+                }
 
                 const data = await res.json();
                 setArticle(data);

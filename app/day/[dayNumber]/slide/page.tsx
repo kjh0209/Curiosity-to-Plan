@@ -36,7 +36,7 @@ export default function SlidePage() {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState("");
-    const [language, setLanguage] = useState<Language>("ko"); // Changed initial language to "ko"
+    const [language, setLanguage] = useState<Language>("en");
     const [slideImages, setSlideImages] = useState<Record<number, { url: string; credit: string; creditUrl: string }>>({});
 
     // Localization
@@ -109,7 +109,10 @@ export default function SlidePage() {
                     })
                 });
 
-                if (!res.ok) throw new Error("Failed to generate slides");
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to generate slides");
+                }
 
                 const data = await res.json();
                 setSlides(data.slides);

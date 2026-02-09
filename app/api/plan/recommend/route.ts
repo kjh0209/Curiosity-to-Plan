@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
         }
 
         const user = completedPlan.user;
-        const userLanguage = user?.language || "ko";
-        const languageName = languageNames[userLanguage] || "Korean";
+        const userLanguage = user?.language || "en";
+        const languageName = languageNames[userLanguage] || "English";
         const currentMinutes = completedPlan.minutesPerDay;
         const currentDays = completedPlan.totalDays;
 
