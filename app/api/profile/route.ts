@@ -201,6 +201,44 @@ export async function PUT(req: NextRequest) {
     }
 }
 
+export async function DELETE(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const userId = searchParams.get("userId");
+
+        if (!userId) {
+            return NextResponse.json(
+                { error: "Missing userId" },
+                { status: 400 }
+            );
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: "User not found" },
+                { status: 404 }
+            );
+        }
+
+        // Delete user (cascades to Plans, DayPlans, QuizAttempts, UserFeedback)
+        await prisma.user.delete({
+            where: { id: userId },
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Account deletion error:", error);
+        return NextResponse.json(
+            { error: String(error) },
+            { status: 500 }
+        );
+    }
+}
+
 function maskApiKey(key: string): string {
     if (!key || key.length < 10) return "sk-...";
     return `${key.slice(0, 5)}...${key.slice(-4)}`;

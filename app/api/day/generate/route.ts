@@ -253,6 +253,7 @@ Return ONLY valid JSON:
     });
 
     return NextResponse.json({
+      id: dayPlan.id,
       steps: result.steps,
       quiz: result.quiz,
       resources,
