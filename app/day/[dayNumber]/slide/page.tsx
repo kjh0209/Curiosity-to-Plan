@@ -255,7 +255,7 @@ export default function SlidePage() {
                         {/* Slide Decoration */}
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
 
-                        <div className="flex-1 p-12 flex flex-col justify-center">
+                        <div className="flex-1 p-8 md:p-12 flex flex-col justify-center overflow-y-auto max-h-[calc(100%-2rem)]">
                             {/* ... existing layouts ... */}
                             {slide.layout === "title" && (
                                 <div className="text-center">
