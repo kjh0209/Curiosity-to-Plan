@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { provisionGeminiKey } from "@/lib/gemini-provisioner";
-
 export async function POST(req: NextRequest) {
     try {
         const {
@@ -64,16 +62,8 @@ export async function POST(req: NextRequest) {
             if (openaiDailyQuota) {
                 userData.openaiDailyQuota = parseInt(openaiDailyQuota, 10);
             }
-        } else {
-            // No OpenAI key provided - provision a Gemini key for this user
-            try {
-                const geminiKey = await provisionGeminiKey(userId, email);
-                userData.geminiApiKey = geminiKey;
-            } catch (geminiError) {
-                console.warn("Failed to provision Gemini key, using shared key:", geminiError);
-                // Continue without a user-specific key - will use shared key
-            }
         }
+        // Gemini key pool handles distribution automatically — no provisioning needed
 
         // Create user
         const user = await prisma.user.create({

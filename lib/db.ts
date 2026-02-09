@@ -16,25 +16,16 @@ export async function getOrCreateUser(userId: string) {
   });
 
   if (!user) {
-    // Provision Gemini key for new user
-    const { provisionGeminiKey } = require("./gemini-provisioner");
-    let geminiKey = null;
-    try {
-      geminiKey = await provisionGeminiKey(userId, `${userId}@placeholder.local`);
-    } catch (error) {
-      console.warn("Failed to provision Gemini key for auto-created user:", error);
-    }
-
+    // Gemini key pool handles distribution automatically — no provisioning needed
     user = await prisma.user.create({
       data: {
         id: userId,
-        email: `${userId}@placeholder.local`,  // Placeholder for anonymous users
-        password: "",  // Empty password for anonymous users
+        email: `${userId}@placeholder.local`,
+        password: "",
         interest: "",
         goal: "",
         minutesPerDay: 20,
         streak: 0,
-        geminiApiKey: geminiKey,
       },
     });
   }

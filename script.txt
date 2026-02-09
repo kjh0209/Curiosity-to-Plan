@@ -1,0 +1,49 @@
+Script
+
+Okay, so you're building a hackathon project. You're going to have three minutes to present what you've built to the judges to make sure they've understood the problem that you're solving and the product that you've built.
+
+Remember that in a hackathon the judges are looking at hundreds of projects aside from your one, so you need to be memorable and stand out in a positive way. A common mistake that lots of people make when it comes to hackathon projects is spending all the time focused on building and then falling short when it comes to presenting your project. While I'm sure you'll have a valuable learning experience from building alone, presenting your project and the judging process is a big part of every hackathon, so you don't want to fall short at the end after all the hard work that you've put in. Please make sure that you put the necessary time and work into presenting your project so that you stand out to the judges.
+
+Okay, so there's a simple structure that your pitch is going to take. You're not going to have long, so we're going to keep it short and sweet. You're going to need to introduce the problem, tell us about the solution, and then demo your product. It's as simple as that. There's extra information you can include—for example information about your team and next steps after the hackathon—but these are nice to have. You need to make sure first you cover the core details.
+
+The first thing you should do when you're starting to think about how you're presenting your project is sit down with your teammates and start to make your pitch deck. This is an important mental exercise for you to determine what the core components of your product are and what you need to present to the judges.
+
+Ask yourself some questions. What is the problem that the project is addressing? Why is the problem important? Can you quantify this? It's simplest. What is the product that you're building and the solution that you're suggesting? What are the most important features? These are the core things that you need to think about and need to get across to the judges in the short pitching time.
+
+There might be parts of the product that you're really proud of—for example a really nice login flow or a pretty UI—but if they're not integral to the product, I wouldn't suggest spending time on highlighting them because you're taking away time from the core messaging of your product, which is the problem, the solution, and the demo. You have limited time, so you need to make the most of it.
+
+Your deck should actually be very short. I would suggest no more than five slides to cover all of the content that you're going to deliver. If you think about it, in a three minute pitch this gives you about 30 seconds per slide with a little bit extra leeway for the demo, and that's more than enough time to get through everything.
+
+When it comes to making your pitch deck, it could be tempting to utilize AI tools like Gamma for creating your presentation, but I would suggest not doing this. There's a couple of reasons why. For one thing, the mental exercise of deciding what content is going to be included in your presentation is important for you to go through, and if you skip it with AI then you might miss something important. AI tends to fill the page with what can only be called slop. It likes to fill it with content that's not actually that important and that detracts from your main messaging.
+
+In a world of AI slop, an AI presentation can make your product completely forgettable—and that is the last thing you want to be in a hackathon. The judges aren't looking at your product for long, so you want to stand out. Don't deliver a presentation of AI slop.
+
+That's not to say you can't use AI tools when making your presentation. You just have to be wary about what tools you're using it for and adding the human touch still.
+
+Something important that a lot of people don't realize is that when they're building a hackathon project they end up in their own little content bubble. They're focused on that project and they know its ins and outs completely, but in the judging period this is usually the first time that the judge is coming across your product, and they don't know anything about it before this.
+
+You need to think outside of your bubble and from the judge's perspective. Make sure that you set the scene when it comes to the problem and give the judges the necessary groundwork so that they understand why it's a problem worth focusing on.
+
+Have some discussions about your product with people outside of your hackathon team. By doing this you'll get a clearer idea of the sorts of questions that people ask and the context that's needed to fully understand your product.
+
+A good thing to spend time on when you're creating the content for your pitch is a one line description of what your product actually is at its simplest. What is the most important thing for you to mention? This is usually the tagline of the product. Think of it as how the judges are going to explain your product to the other judges when they're advocating for you to be the winner. What are they going to say?
+
+After you've shared the problem statement and the description of what your product is, demo is an important part of your presentation to the judges. Record your demo as a series of short video clips, screen recording with whatever native tool is common for your device. Edit your demo down to only include the most important parts. You're showing off the core features and functionality of the product.
+
+You don't want to waste time on boring login flow or clicking through multiple buttons to get to the right page. You have limited time and attention span from the judges, so don't waste it. That being said, you don't need to sacrifice having an understandable user flow. The outcome of your demo is that the judge should understand how a user interacts with your product and its core functionality.
+
+You can use free editing software like Canva or iMovie or ClipChamp—something that you can access freely and easily on your device.
+
+When it comes to recording your pitch, tools like Canva or PowerPoint or Google Slides have inbuilt recording functionality. Do a couple of full run-throughs before you actually hit record. Remember you only have three minutes to present, and that's not as much time as you might think it is.
+
+Time yourself going through your full pitch end-to-end, including the demo, and make sure you're spending an appropriate amount of time on each section. Something that we see often is people speeding up towards the end of their pitch because they realise they need to cut time, but this just looks unprofessional and it means you're skipping parts of your core messaging.
+
+If English isn't your first language or you're a nervous public speaker, then use AI tools and translation software to help you write your script. Most presentation software allows you to write speaker notes that you can refer to when you're recording your pitch.
+
+Presentation skills are extremely useful in the real world as well. You might even be invited to present your project live, so taking the time to practice before you hit record is a great way to make sure that your pitch is professional and smooth.
+
+Okay, so let's recap what we've talked about today. Your pitch should follow a simple structure: introducing the problem, introducing the solution, and demoing the product. There are lots of free tools available for you to use when building up your pitch and editing your video.
+
+You should be careful with your use of AI and make sure you're not removing human touch from your video pitch. And it's important that your video comes across as professional and smooth, so give yourself enough time to prepare your materials and make yourself stand out to the judges.
+
+Good luck, and I'm looking forward to watching your pitch.

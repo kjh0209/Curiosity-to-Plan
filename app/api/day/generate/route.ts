@@ -258,8 +258,17 @@ Return ONLY valid JSON:
       resources,
       recommendedBook: result.recommendedBook,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Day mission generation error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+
+    // User-friendly message for quota/rate limit errors
+    const msg = String(error);
+    if (error.status === 429 || msg.includes("capacity") || msg.includes("quota") || msg.includes("limit")) {
+      return NextResponse.json({
+        error: "AI service is temporarily at capacity. Please try again in a few minutes. If this issue persists, please contact us at kevin070209@gmail.com"
+      }, { status: 429 });
+    }
+
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

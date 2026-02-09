@@ -7,6 +7,9 @@ import Navbar from "@/components/Navbar";
 export const metadata: Metadata = {
   title: "SkillLoop - Personalized Learning Routine",
   description: "Convert your curiosity into a customized learning plan with AI",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 // Inter - Clean, modern, Apple-like typography

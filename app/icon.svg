@@ -1,0 +1,22 @@
+<svg width="48" height="48" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg_sl" x1="18" y1="18" x2="122" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1026"/>
+      <stop offset="0.55" stop-color="#12163A"/>
+      <stop offset="1" stop-color="#0A0F22"/>
+    </linearGradient>
+    <linearGradient id="stair_sl" x1="34" y1="98" x2="112" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <filter id="shadow_sl" x="-0.08974359" y="-0.12962963" width="1.1794872" height="1.2592593" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <path d="m 40,12 h 60 c 15.512,0 28,12.488 28,28 v 60 c 0,15.512 -12.488,28 -28,28 H 40 C 24.488,128 12,115.512 12,100 V 40 C 12,24.488 24.488,12 40,12 Z" style="fill:url(#bg_sl)"/>
+  <g filter="url(#shadow_sl)">
+    <path d="M34 98 H60 V78 H80 V60 H100 V44 H112" stroke="url(#stair_sl)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 98 H60 V78 H80 V60 H100 V44 H112" stroke="#FFFFFF" stroke-opacity="0.20" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

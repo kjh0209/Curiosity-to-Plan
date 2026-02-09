@@ -1,6 +1,7 @@
 // YouTube Data API v3 integration
-// Requires YOUTUBE_API_KEY in .env.local
-// Get your API key from: https://console.cloud.google.com/apis/credentials
+// Supports multiple API keys for quota distribution
+// Each key is from a different Google Cloud project (10,000 units/day each)
+// Set YOUTUBE_API_KEYS=key1,key2,key3 in .env
 
 interface YouTubeVideo {
     videoId: string;
@@ -20,7 +21,77 @@ interface YouTubeSearchResult {
 
 type SortOrder = "relevance" | "viewCount" | "rating" | "date";
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+// --- YouTube Key Pool ---
+interface YTKeyState {
+    key: string;
+    cooldownUntil: number;
+}
+
+const ytKeys: YTKeyState[] = [];
+
+function loadYTKeys() {
+    if (ytKeys.length > 0) return;
+
+    const multi = process.env.YOUTUBE_API_KEYS;
+    if (multi) {
+        for (const k of multi.split(",").map((s) => s.trim()).filter(Boolean)) {
+            ytKeys.push({ key: k, cooldownUntil: 0 });
+        }
+    }
+    if (ytKeys.length === 0) {
+        const single = process.env.YOUTUBE_API_KEY;
+        if (single) {
+            ytKeys.push({ key: single, cooldownUntil: 0 });
+        }
+    }
+    if (ytKeys.length > 0) {
+        console.log(`YouTube key pool: ${ytKeys.length} key(s)`);
+    }
+}
+
+function getAvailableYTKey(): string | null {
+    loadYTKeys();
+    if (ytKeys.length === 0) return null;
+
+    const now = Date.now();
+    // Find first non-cooldown key
+    for (const ks of ytKeys) {
+        if (ks.cooldownUntil <= now) return ks.key;
+    }
+    // All in cooldown — return the one expiring soonest
+    let best = ytKeys[0];
+    for (const ks of ytKeys) {
+        if (ks.cooldownUntil < best.cooldownUntil) best = ks;
+    }
+    return best.key;
+}
+
+function getNextYTKey(failedKey: string): string | null {
+    const now = Date.now();
+    const idx = ytKeys.findIndex((k) => k.key === failedKey);
+    for (let i = 1; i < ytKeys.length; i++) {
+        const next = ytKeys[(idx + i) % ytKeys.length];
+        if (next.cooldownUntil <= now) return next.key;
+    }
+    return null;
+}
+
+function markYTKeyExhausted(key: string) {
+    const ks = ytKeys.find((k) => k.key === key);
+    if (ks) {
+        // YouTube daily quota resets at midnight Pacific Time
+        // Set cooldown for 1 hour (keys will be retried periodically)
+        ks.cooldownUntil = Date.now() + 60 * 60 * 1000;
+        console.warn(`YouTube key ...${key.slice(-6)} quota exhausted, cooldown 1h`);
+    }
+}
+
+function markYTKeySuccess(key: string) {
+    const ks = ytKeys.find((k) => k.key === key);
+    if (ks) ks.cooldownUntil = 0;
+}
+
+// --- Search with Key Rotation ---
 
 /**
  * Search YouTube for videos and return the top result
@@ -36,108 +107,129 @@ export async function searchYouTubeVideos(
     maxResults: number = 3,
     maxDurationMinutes?: number  // Filter out videos longer than this
 ): Promise<YouTubeSearchResult> {
-    if (!YOUTUBE_API_KEY) {
-        console.warn("YOUTUBE_API_KEY not set, returning search URL fallback");
-        return {
-            videos: [{
-                videoId: "",
-                title: `Search: ${query}`,
-                channelTitle: "YouTube",
-                thumbnail: "",
-                url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAMSAhAB`,
-            }],
-            error: "API key not configured",
-        };
+    loadYTKeys();
+
+    if (ytKeys.length === 0) {
+        console.warn("No YouTube API keys configured, returning search URL fallback");
+        return makeFallback(query, "API key not configured");
     }
 
-    try {
-        // Map language code to region code
-        const regionMap: Record<string, string> = {
-            ko: "KR",
-            ja: "JP",
-            zh: "CN",
-            es: "ES",
-            fr: "FR",
-            de: "DE",
-            en: "US",
-        };
-        const regionCode = regionMap[language] || "US";
+    let currentKey = getAvailableYTKey();
 
-        // Search for videos
-        const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-        searchUrl.searchParams.set("part", "snippet");
-        searchUrl.searchParams.set("q", query);
-        searchUrl.searchParams.set("type", "video");
-        searchUrl.searchParams.set("order", order);
-        searchUrl.searchParams.set("maxResults", maxResults.toString());
-        searchUrl.searchParams.set("regionCode", regionCode);
-        searchUrl.searchParams.set("relevanceLanguage", language);
-        searchUrl.searchParams.set("key", YOUTUBE_API_KEY);
+    for (let attempt = 0; attempt < ytKeys.length; attempt++) {
+        if (!currentKey) return makeFallback(query, "All YouTube keys exhausted");
 
-        const searchResponse = await fetch(searchUrl.toString());
-
-        if (!searchResponse.ok) {
-            const errorData = await searchResponse.json();
-            console.error("YouTube API error:", errorData);
-            throw new Error(errorData.error?.message || "YouTube API error");
+        try {
+            const result = await doYouTubeSearch(currentKey, query, language, order, maxResults, maxDurationMinutes);
+            markYTKeySuccess(currentKey);
+            return result;
+        } catch (error: any) {
+            // YouTube returns 403 for quota exceeded
+            if (error.status === 403 || error.message?.includes("quota") || error.message?.includes("Quota")) {
+                markYTKeyExhausted(currentKey);
+                const nextKey = getNextYTKey(currentKey);
+                if (nextKey) {
+                    console.log(`YouTube 403 on ...${currentKey.slice(-6)}, rotating to ...${nextKey.slice(-6)}`);
+                    currentKey = nextKey;
+                    continue;
+                }
+            }
+            console.error("YouTube search error:", error);
+            return makeFallback(query, String(error));
         }
-
-        const searchData = await searchResponse.json();
-
-        if (!searchData.items || searchData.items.length === 0) {
-            return { videos: [], error: "No videos found" };
-        }
-
-        // Get video statistics and duration
-        const videoIds = searchData.items.map((item: any) => item.id.videoId).join(",");
-        const statsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
-        statsUrl.searchParams.set("part", "statistics,contentDetails");
-        statsUrl.searchParams.set("id", videoIds);
-        statsUrl.searchParams.set("key", YOUTUBE_API_KEY);
-
-        const statsResponse = await fetch(statsUrl.toString());
-        const statsData = statsResponse.ok ? await statsResponse.json() : { items: [] };
-
-        // Build video objects
-        let videos: YouTubeVideo[] = searchData.items.map((item: any, idx: number) => {
-            const stats = statsData.items?.[idx]?.statistics || {};
-            const contentDetails = statsData.items?.[idx]?.contentDetails || {};
-            const { duration, durationMinutes } = parseDuration(contentDetails.duration);
-
-            return {
-                videoId: item.id.videoId,
-                title: item.snippet.title,
-                channelTitle: item.snippet.channelTitle,
-                thumbnail: item.snippet.thumbnails?.medium?.url || "",
-                viewCount: stats.viewCount ? formatViewCount(parseInt(stats.viewCount)) : undefined,
-                duration,
-                durationMinutes,
-                url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-            };
-        });
-
-        // Filter by max duration if specified
-        if (maxDurationMinutes && maxDurationMinutes > 0) {
-            const originalCount = videos.length;
-            videos = videos.filter(v => !v.durationMinutes || v.durationMinutes <= maxDurationMinutes);
-            console.log(`[YouTube] Filtered ${originalCount - videos.length} videos exceeding ${maxDurationMinutes} min`);
-        }
-
-        return { videos };
-    } catch (error) {
-        console.error("YouTube search error:", error);
-        // Fallback to search URL
-        return {
-            videos: [{
-                videoId: "",
-                title: `Search: ${query}`,
-                channelTitle: "YouTube",
-                thumbnail: "",
-                url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAMSAhAB`,
-            }],
-            error: String(error),
-        };
     }
+
+    return makeFallback(query, "All YouTube keys exhausted");
+}
+
+async function doYouTubeSearch(
+    apiKey: string,
+    query: string,
+    language: string,
+    order: SortOrder,
+    maxResults: number,
+    maxDurationMinutes?: number
+): Promise<YouTubeSearchResult> {
+    const regionMap: Record<string, string> = {
+        ko: "KR", ja: "JP", zh: "CN", es: "ES", fr: "FR", de: "DE", en: "US",
+    };
+    const regionCode = regionMap[language] || "US";
+
+    // Search for videos
+    const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+    searchUrl.searchParams.set("part", "snippet");
+    searchUrl.searchParams.set("q", query);
+    searchUrl.searchParams.set("type", "video");
+    searchUrl.searchParams.set("order", order);
+    searchUrl.searchParams.set("maxResults", maxResults.toString());
+    searchUrl.searchParams.set("regionCode", regionCode);
+    searchUrl.searchParams.set("relevanceLanguage", language);
+    searchUrl.searchParams.set("key", apiKey);
+
+    const searchResponse = await fetch(searchUrl.toString());
+
+    if (!searchResponse.ok) {
+        const errorData = await searchResponse.json();
+        const err: any = new Error(errorData.error?.message || "YouTube API error");
+        err.status = searchResponse.status;
+        throw err;
+    }
+
+    const searchData = await searchResponse.json();
+
+    if (!searchData.items || searchData.items.length === 0) {
+        return { videos: [], error: "No videos found" };
+    }
+
+    // Get video statistics and duration
+    const videoIds = searchData.items.map((item: any) => item.id.videoId).join(",");
+    const statsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+    statsUrl.searchParams.set("part", "statistics,contentDetails");
+    statsUrl.searchParams.set("id", videoIds);
+    statsUrl.searchParams.set("key", apiKey);
+
+    const statsResponse = await fetch(statsUrl.toString());
+    const statsData = statsResponse.ok ? await statsResponse.json() : { items: [] };
+
+    // Build video objects
+    let videos: YouTubeVideo[] = searchData.items.map((item: any, idx: number) => {
+        const stats = statsData.items?.[idx]?.statistics || {};
+        const contentDetails = statsData.items?.[idx]?.contentDetails || {};
+        const { duration, durationMinutes } = parseDuration(contentDetails.duration);
+
+        return {
+            videoId: item.id.videoId,
+            title: item.snippet.title,
+            channelTitle: item.snippet.channelTitle,
+            thumbnail: item.snippet.thumbnails?.medium?.url || "",
+            viewCount: stats.viewCount ? formatViewCount(parseInt(stats.viewCount)) : undefined,
+            duration,
+            durationMinutes,
+            url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+        };
+    });
+
+    // Filter by max duration if specified
+    if (maxDurationMinutes && maxDurationMinutes > 0) {
+        const originalCount = videos.length;
+        videos = videos.filter(v => !v.durationMinutes || v.durationMinutes <= maxDurationMinutes);
+        console.log(`[YouTube] Filtered ${originalCount - videos.length} videos exceeding ${maxDurationMinutes} min`);
+    }
+
+    return { videos };
+}
+
+function makeFallback(query: string, error: string): YouTubeSearchResult {
+    return {
+        videos: [{
+            videoId: "",
+            title: `Search: ${query}`,
+            channelTitle: "YouTube",
+            thumbnail: "",
+            url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAMSAhAB`,
+        }],
+        error,
+    };
 }
 
 /**

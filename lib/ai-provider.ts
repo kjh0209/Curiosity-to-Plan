@@ -3,17 +3,14 @@
  *
  * Priority:
  * 1. User's own OpenAI key (if configured and within quota)
- * 2. User's dedicated Gemini key (if provisioned)
- * 3. Shared Gemini key (fallback)
+ * 2. Gemini via key pool (auto-distributed across multiple projects)
  */
 
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "./db";
 import { resolveGeminiKey, isUserSpecificKey } from "./gemini-provisioner";
-
-// Server-side Gemini API key as fallback
-const GEMINI_MASTER_KEY = process.env.GEMINI_API_KEY || "";
+import { geminiKeyPool } from "./gemini-key-pool";
 
 interface User {
     id: string;
@@ -120,30 +117,94 @@ async function generateWithOpenAI(
 }
 
 /**
- * Generate text using Gemini's API
+ * Extract retry delay from Gemini 429 error
+ */
+function extractRetryDelay(error: any): number {
+    // Try to parse retryDelay from error details
+    if (error.errorDetails) {
+        for (const detail of error.errorDetails) {
+            if (detail["@type"]?.includes("RetryInfo") && detail.retryDelay) {
+                const match = detail.retryDelay.match(/(\d+)/);
+                if (match) return parseInt(match[1], 10);
+            }
+        }
+    }
+    // Default 60s cooldown
+    return 60;
+}
+
+/**
+ * Generate text using Gemini's API with automatic key rotation on 429
  */
 async function generateWithGemini(
+    userId: string,
     userGeminiKey: string | null,
-    model: string = "gemini-flash-latest",
+    model: string = "gemini-2.0-flash",
     prompt: string
 ): Promise<{ text: string; tokens: number }> {
-    const actualKey = resolveGeminiKey(userGeminiKey);
+    const MAX_RETRIES = Math.max(geminiKeyPool.poolSize, 1);
+    let lastError: any = null;
+    let currentKey = resolveGeminiKey(userGeminiKey, userId);
 
-    if (!actualKey) {
-        throw new Error("Gemini API key not configured");
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (!currentKey) {
+            throw new Error("Gemini API key not configured. Set GEMINI_API_KEYS in .env");
+        }
+
+        try {
+            const genAI = new GoogleGenerativeAI(currentKey);
+            const geminiModel = genAI.getGenerativeModel({ model });
+            const result = await geminiModel.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
+            const tokens = Math.round((prompt.length / 4) + (text.length / 4));
+
+            // Success — mark key healthy
+            geminiKeyPool.markSuccess(currentKey);
+
+            return { text, tokens };
+        } catch (error: any) {
+            lastError = error;
+
+            if (error.status === 429) {
+                const retryDelay = extractRetryDelay(error);
+                geminiKeyPool.markRateLimited(currentKey, retryDelay);
+
+                // Try next key in pool
+                const nextKey = geminiKeyPool.getNextKey(currentKey);
+                if (nextKey) {
+                    console.log(`Gemini 429 on ...${currentKey.slice(-6)}, rotating to ...${nextKey.slice(-6)}`);
+                    currentKey = nextKey;
+                    continue;
+                }
+
+                // No more keys available — wait briefly and retry same key
+                if (attempt < MAX_RETRIES - 1) {
+                    const waitMs = Math.min(retryDelay * 1000, 10000); // max 10s wait
+                    console.log(`All Gemini keys exhausted, waiting ${waitMs}ms...`);
+                    await new Promise((r) => setTimeout(r, waitMs));
+                    currentKey = geminiKeyPool.getKeyForUser(userId) || currentKey;
+                    continue;
+                }
+            }
+
+            // Non-429 error or exhausted retries — throw
+            if (error.status === 429) {
+                throw new Error(
+                    "AI service is temporarily at capacity. Please try again in a few minutes. " +
+                    "If this issue persists, please contact us at kevin070209@gmail.com"
+                );
+            }
+            throw error;
+        }
     }
 
-    const genAI = new GoogleGenerativeAI(actualKey);
-    const geminiModel = genAI.getGenerativeModel({ model });
-
-    const result = await geminiModel.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-
-    // Gemini usage metadata might be missing in some SDK versions, estimate fallback
-    const tokens = (prompt.length / 4) + (text.length / 4);
-
-    return { text, tokens: Math.round(tokens) };
+    throw lastError?.status === 429
+        ? new Error(
+            "AI service is temporarily at capacity. Please try again in a few minutes. " +
+            "If this issue persists, please contact us at kevin070209@gmail.com"
+          )
+        : lastError || new Error("Gemini generation failed after all retries");
 }
 
 /**
@@ -204,12 +265,13 @@ export async function generateWithAI(
     // Check Gemini quota
     if (user.geminiTokenUsagePeriod >= user.geminiMonthlyTokenLimit) {
         throw new Error(
-            `Monthly AI token limit exceeded (${user.geminiTokenUsagePeriod} / ${user.geminiMonthlyTokenLimit}). Please upgrade or add your own OpenAI key.`
+            "Monthly AI usage limit reached. Please try again later or contact us at kevin070209@gmail.com for assistance."
         );
     }
 
-    // Use Gemini
+    // Use Gemini with key pool + retry
     const { text, tokens } = await generateWithGemini(
+        userId,
         user.geminiApiKey,
         user.geminiModel || "gemini-2.0-flash",
         prompt
@@ -246,16 +308,14 @@ export async function getRemainingQuota(userId: string): Promise<{
 
     if (!user) throw new Error("User not found");
 
+    // Determine key type
     let geminiKeyType: "dedicated" | "shared" | "none" = "none";
-    if (user.geminiApiKey) {
-        geminiKeyType = isUserSpecificKey(user.geminiApiKey) ? "shared" : "dedicated";
-    } else if (GEMINI_MASTER_KEY) {
-        geminiKeyType = "shared";
+    if (user.geminiApiKey && !isUserSpecificKey(user.geminiApiKey)) {
+        geminiKeyType = "dedicated"; // User's own real key
+    } else if (geminiKeyPool.poolSize > 0) {
+        geminiKeyType = "shared"; // Using the pool
     }
 
-    // Calculate Estimated Cost
-    // Cost = (Limit / 1,000,000) * Model Rate
-    // e.g. 2M limit * $0.30 (mini) = $0.60
     const rate = MODEL_COSTS[user.openaiModel] || 0.30;
     const costEstimate = (user.openaiMonthlyTokenLimit / 1000000) * rate;
 
@@ -269,7 +329,7 @@ export async function getRemainingQuota(userId: string): Promise<{
         gemini: {
             used: user.geminiTokenUsagePeriod,
             limit: user.geminiMonthlyTokenLimit,
-            hasKey: !!user.geminiApiKey || !!GEMINI_MASTER_KEY,
+            hasKey: !!user.geminiApiKey || geminiKeyPool.poolSize > 0,
             keyType: geminiKeyType,
         },
     };
