@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
                     resources: true,
                     plan: {
                         select: {
-                            interest: true,
+                            planTitle: true,
                             totalDays: true,
                             language: true,
                         },
