@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { LogoIcon } from "@/components/Logo";
+import { getDictionary, Language } from "@/lib/i18n";
 
 interface QuizQuestion {
   q: string;
@@ -47,28 +47,20 @@ interface SavedResult {
   failureReason?: string;
 }
 
-const resourceIcons: Record<string, string> = {
-  youtube: "Video",
-  article: "Article",
-  wikipedia: "Wiki",
-  documentation: "Docs",
-  tutorial: "Tutorial",
-  textbook: "Book",
+const resourceIcons: Record<string, JSX.Element> = {
+  youtube: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" /></svg>,
+  article: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>,
+  wikipedia: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2 16h-2l-2-6h2l1 4 1-4h2l1 4 1-4h2l-2 6z" /></svg>, // Placeholder
+  documentation: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+  tutorial: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>,
+  textbook: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
 };
 
 const difficultyConfig = {
-  1: { label: "Easy", class: "difficulty-easy" },
-  2: { label: "Medium", class: "difficulty-medium" },
-  3: { label: "Hard", class: "difficulty-hard" },
+  1: { label: "Easy", class: "bg-green-500/10 text-green-400 border-green-500/20" },
+  2: { label: "Medium", class: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
+  3: { label: "Hard", class: "bg-red-500/10 text-red-400 border-red-500/20" },
 };
-
-import { getDictionary, Language } from "@/lib/i18n";
-
-// ... existing imports
-
-// ... interfaces
-
-
 
 export default function DayPage() {
   const router = useRouter();
@@ -92,9 +84,9 @@ export default function DayPage() {
   // Missing State Variables
   const [totalDays, setTotalDays] = useState(0);
   const [allDays, setAllDays] = useState<any[]>([]);
-  const [savedResult, setSavedResult] = useState<any>(null);
+  const [savedResult, setSavedResult] = useState<SavedResult | null>(null);
   const [userAnswers, setUserAnswers] = useState<string[]>(["", "", ""]);
-  const [currentResult, setCurrentResult] = useState<any>(null);
+  const [currentResult, setCurrentResult] = useState<SavedResult | null>(null);
   const [clickedResources, setClickedResources] = useState<Set<number>>(new Set());
   const [bookCoverUrl, setBookCoverUrl] = useState<string | null>(null);
 
@@ -164,6 +156,9 @@ export default function DayPage() {
         if (cachedData) {
           setDayData(JSON.parse(cachedData));
           setDayData(JSON.parse(cachedData));
+
+          // Re-fetch book cover if it's there
+          // The effect below handles book cover fetch when dayData changes
         } else if (dayMeta.steps && dayMeta.quiz && userLang === planData.plan.language) {
           // Use Pre-generated content from DB (only if languages match)
           const data: DayData = {
@@ -221,7 +216,11 @@ export default function DayPage() {
             setSavedResult({
               score: dayDBData.quizAttempt.score,
               passed: true,
-              feedback: dayDBData.quizAttempt.feedback
+              feedback: dayDBData.quizAttempt.feedback,
+              timestamp: new Date().toISOString(),
+              difficultySignal: "",
+              userAnswers: [],
+
             });
           }
         }
@@ -237,16 +236,10 @@ export default function DayPage() {
   }, [status, session, router, planId, dayNumber, mode]);
 
 
-
-
-
-  const [bookCoverDone, setBookCoverDone] = useState(false);
-
   // Fetch book cover image from multiple sources
   useEffect(() => {
     if (!dayData?.recommendedBook) return;
     setBookCoverUrl(null);
-    setBookCoverDone(false);
 
     const fetchCover = async () => {
       try {
@@ -311,8 +304,6 @@ export default function DayPage() {
         else if (oUrl) setBookCoverUrl(oUrl);
       } catch (err) {
         console.error('Failed to fetch book cover:', err);
-      } finally {
-        setBookCoverDone(true);
       }
     };
     fetchCover();
@@ -420,10 +411,10 @@ export default function DayPage() {
 
   if (status === "loading" || loading) {
     return (
-      <main className="page-bg flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <div className="spinner mx-auto mb-4" style={{ width: 32, height: 32, borderWidth: 3 }} />
-          <p className="text-[var(--text-secondary)]">{dict.common.loading}</p>
+      <main className="page-bg-gradient min-h-screen flex items-center justify-center">
+        <div className="text-center animate-pulse">
+          <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400 font-medium">Loading Mission...</p>
         </div>
       </main>
     );
@@ -431,13 +422,16 @@ export default function DayPage() {
 
   if (error || !dayData) {
     return (
-      <main className="page-bg flex items-center justify-center p-4">
-        <div className="card p-8 max-w-md text-center animate-fade-in">
-          <h1 className="text-xl font-semibold mb-2">{dict.common.error}</h1>
-          <p className="text-[var(--error)] mb-6">{error}</p>
+      <main className="page-bg-gradient min-h-screen flex items-center justify-center p-4">
+        <div className="glass-card p-10 max-w-lg text-center animate-scale-in">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <h1 className="text-2xl font-bold mb-2 text-white">{dict.common.error}</h1>
+          <p className="text-slate-400 mb-8">{error}</p>
           <button
             onClick={() => router.push(`/plan?id=${planId}`)}
-            className="btn btn-primary"
+            className="btn btn-primary w-full"
           >
             {dict.day.backToPlan}
           </button>
@@ -451,40 +445,46 @@ export default function DayPage() {
   const diffConfig = difficultyConfig[dayData.difficulty as 1 | 2 | 3] || difficultyConfig[2];
 
   return (
-    <main className="page-bg-gradient">
-      <div className="container-default py-6 md:py-8">
+    <main className="page-bg-gradient min-h-screen pb-20">
+      <div className="container-default pt-24 max-w-4xl">
         {/* Navigation Header */}
-        <header className="flex items-center justify-between mb-6">
+        <header className="flex items-center justify-between mb-8 animate-fade-in">
           <Link href={`/plan?id=${planId}`}>
-            <button className="btn btn-ghost text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {dict.day.backToPlan}
+            <button className="flex items-center text-slate-400 hover:text-white transition-colors group">
+              <div className="w-8 h-8 rounded-full bg-slate-800/50 flex items-center justify-center mr-3 group-hover:bg-sky-500/20 group-hover:text-sky-400 transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </div>
+              <span className="font-medium">{dict.day.backToPlan}</span>
             </button>
           </Link>
 
-          <Link href="/">
-            <LogoIcon size={36} />
+          <Link href="/" className="opacity-80 hover:opacity-100 transition-opacity">
+            <span className="font-bold text-xl tracking-tight">Skill<span className="text-sky-400">Loop</span></span>
           </Link>
         </header>
 
         {/* Day Navigation */}
-        <div className="card p-4 mb-6 flex items-center justify-between animate-fade-in">
+        <div className="glass-card p-4 mb-8 flex items-center justify-between animate-fade-in relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 via-transparent to-sky-500/5 opacity-50"></div>
           <button
             onClick={() => navigateToDay(dayNumber - 1)}
             disabled={dayNumber <= 1}
-            className="btn btn-ghost text-sm disabled:opacity-40"
+            className="btn btn-ghost text-sm disabled:opacity-30 hover:bg-slate-800/50 relative z-10"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             {dict.day.prevDay}
           </button>
 
-          <span className="font-medium">
-            {dict.day.day} {dayNumber} <span className="text-[var(--text-tertiary)]">{dict.day.of} {totalDays}</span>
-          </span>
+          <div className="text-center relative z-10">
+            <span className="block text-xs font-bold text-sky-400 uppercase tracking-widest mb-1">Current Mission</span>
+            <span className="font-bold text-lg text-white">
+              Day {dayNumber} <span className="text-slate-600 mx-2">/</span> <span className="text-slate-400">{totalDays}</span>
+            </span>
+          </div>
 
           <button
             onClick={() => navigateToDay(dayNumber + 1)}
@@ -493,10 +493,10 @@ export default function DayPage() {
               const nextDay = allDays.find(d => d.dayNumber === dayNumber + 1);
               return !nextDay || nextDay.status === "LOCKED";
             })()}
-            className="btn btn-ghost text-sm disabled:opacity-40"
+            className="btn btn-ghost text-sm disabled:opacity-30 hover:bg-slate-800/50 relative z-10"
           >
             {dict.day.nextDay}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -504,359 +504,388 @@ export default function DayPage() {
 
         {/* Review Mode Indicator */}
         {isReviewMode && (
-          <div className="mb-4 animate-fade-in">
-            <span className="badge badge-primary py-2 px-3">
+          <div className="mb-6 animate-fade-in flex justify-center">
+            <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 py-2 px-4 rounded-full text-sm font-semibold flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               {dict.day.reviewNotice}
             </span>
           </div>
         )}
 
         {/* Main Content Card */}
-        <div className="card p-6 md:p-8 mb-6 animate-fade-in">
+        <div className="glass-card p-8 md:p-10 mb-8 animate-slide-up border-slate-700 shadow-2xl shadow-black/40">
           {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-xl md:text-2xl font-semibold mb-2">{dict.day.day} {dayNumber}</h1>
-              <p className="text-[var(--text-secondary)]">{dayData.missionTitle}</p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-slate-700/50 pb-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <span className={`px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider border ${diffConfig.class}`}>
+                  {diffConfig.label}
+                </span>
+                <span className="text-slate-500 text-xs font-medium bg-slate-800/50 px-2 py-0.5 rounded">{dayData.resources.length} resources</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight">{dayData.missionTitle}</h1>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Link href={`/day/${dayNumber}/slide?planId=${planId}`}>
-                <button className="btn btn-secondary flex items-center gap-2">
+                <button className="btn btn-secondary flex items-center gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                  {dict.day.startClass}
+                  <span className="hidden sm:inline">{dict.day.startClass}</span>
                 </button>
               </Link>
               <Link href={`/day/${dayNumber}/article?planId=${planId}`}>
-                <button className="btn btn-secondary flex items-center gap-2">
+                <button className="btn btn-secondary flex items-center gap-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                  {dict.day.readLesson}
+                  <span className="hidden sm:inline">{dict.day.readLesson}</span>
                 </button>
               </Link>
-              <span className={`badge ${diffConfig.class}`}>
-                {diffConfig.label}
-              </span>
             </div>
           </div>
 
-          {/* Recommended Book */}
-          {dayData.recommendedBook && (
-            <div className="mb-8 p-6 bg-[var(--surface-highlight)] rounded-xl border border-[var(--primary)]/20 shadow-sm">
-              <div className="flex items-start gap-4">
-                {bookCoverUrl ? (
-                  <img
-                    src={bookCoverUrl}
-                    alt={dayData.recommendedBook.title}
-                    className="w-20 h-auto rounded-md shadow-md flex-shrink-0 object-cover"
-                    onError={() => { setBookCoverUrl(null); setBookCoverDone(true); }}
-                  />
-                ) : (
-                  <div
-                    className="w-20 h-28 rounded-md shadow-md flex-shrink-0 flex flex-col items-center justify-center p-2 text-center"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--primary), var(--secondary, var(--primary)))',
-                      opacity: bookCoverDone ? 1 : 0.5,
-                    }}
-                  >
-                    {!bookCoverDone ? (
-                      <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
-                    ) : (
-                      <>
-                        <span className="text-white text-[10px] font-bold leading-tight line-clamp-3">
-                          {dayData.recommendedBook.title}
-                        </span>
-                        <span className="text-white/70 text-[8px] mt-1 leading-tight line-clamp-1">
-                          {dayData.recommendedBook.author}
-                        </span>
-                      </>
-                    )}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Left Column: Recommended Book & Resources */}
+            <div className="space-y-8 lg:col-span-1">
+              {/* Recommended Book */}
+              {dayData.recommendedBook && (
+                <div className="relative group perspective-1000">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                  <div className="relative glass-card bg-slate-900/90 p-5 rounded-xl border-amber-500/20 overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                      <svg className="w-24 h-24 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    </div>
+
+                    <div className="relative z-10">
+                      <h3 className="text-xs font-bold text-amber-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        {language === "ko" ? "오늘의 추천 도서" : "Recommended Book"}
+                      </h3>
+
+                      <div className="flex gap-4">
+                        {bookCoverUrl ? (
+                          <img
+                            src={bookCoverUrl}
+                            alt={dayData.recommendedBook.title}
+                            className="w-20 h-28 rounded-lg shadow-lg shadow-black/50 object-cover flex-shrink-0 border border-slate-700"
+                            onError={() => { setBookCoverUrl(null); }}
+                          />
+                        ) : (
+                          <div className="w-20 h-28 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                            <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold text-base text-slate-100 leading-snug mb-1 line-clamp-2">{dayData.recommendedBook.title}</p>
+                          <p className="text-xs text-slate-400 mb-3">{dayData.recommendedBook.author}</p>
+                          <p className="text-xs text-slate-300 italic border-l-2 border-amber-500/50 pl-3 leading-relaxed opacity-80">
+                            "{dayData.recommendedBook.reason}"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Resources Section */}
+              {dayData.resources?.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-bold text-[var(--primary)] mb-1 uppercase tracking-wide">
-                    {language === "ko" ? "오늘의 추천 도서" : "Recommended Book"}
-                  </h3>
-                  <p className="font-bold text-lg mb-1">{dayData.recommendedBook.title}</p>
-                  <p className="text-sm text-[var(--text-secondary)] mb-3">{dayData.recommendedBook.author}</p>
-                  <p className="text-[var(--text-primary)] italic border-l-2 border-[var(--primary)] pl-3">
-                    "{dayData.recommendedBook.reason}"
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-semibold text-slate-200">{dict.day.resources}</h2>
+                    <span className="text-xs font-medium bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700">
+                      {clickedResources.size}/{dayData.resources.length} completed
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {dayData.resources.map((resource, idx) => {
+                      const isClicked = clickedResources.has(idx);
+                      return (
+                        <a
+                          key={idx}
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleResourceClick(idx)}
+                          className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-300 group border ${isClicked
+                            ? "bg-green-500/5 border-green-500/20 hover:border-green-500/30"
+                            : "bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/50 hover:border-sky-500/30"
+                            }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${isClicked ? "bg-green-500/10 text-green-400" : "bg-slate-700/50 text-slate-400 group-hover:text-sky-400 group-hover:bg-sky-500/10"
+                            }`}>
+                            {isClicked ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> : (resourceIcons[resource.type] || <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className={`font-medium text-sm truncate ${isClicked ? "text-green-400" : "text-slate-300 group-hover:text-sky-300"}`}>
+                                {resource.title}
+                              </p>
+                            </div>
+                            <p className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">
+                              {resource.description || "Click to open resource"}
+                            </p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Steps & Quiz */}
+            <div className="lg:col-span-2 space-y-10">
+              {/* Steps Section */}
+              <div>
+                <h2 className="font-semibold text-xl text-white mb-6 flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm">01</span>
+                  {dict.day.steps}
+                </h2>
+                <div className="space-y-4">
+                  {dayData.steps.map((step, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-4 p-5 rounded-2xl bg-slate-800/20 border border-slate-700/50 hover:bg-slate-800/40 transition-colors"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 border border-slate-600">
+                        {idx + 1}
+                      </span>
+                      <p className="text-slate-300 leading-relaxed">{step}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Resources Section */}
-          {dayData.resources?.length > 0 && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="font-semibold">{dict.day.resources}</h2>
-                <span className="text-sm text-[var(--text-tertiary)]">
-                  ({clickedResources.size}/{dayData.resources.length} {dict.day.completedStatus})
-                </span>
-              </div>
-              <div className="space-y-2">
-                {dayData.resources.map((resource, idx) => (
-                  <a
-                    key={idx}
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleResourceClick(idx)}
-                    className={`flex items-center gap-4 p-4 rounded-lg transition-colors ${clickedResources.has(idx)
-                      ? "bg-[var(--success-bg)] border border-[var(--success)]/20"
-                      : "surface-raised hover:border-[var(--border-hover)]"
-                      }`}
-                  >
-                    <span className={`text-sm font-medium px-2 py-1 rounded ${clickedResources.has(idx) ? "bg-[var(--success)]/10 text-[var(--success)]" : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
-                      }`}>
-                      {clickedResources.has(idx) ? dict.day.completedStatus : (resourceIcons[resource.type] || "Link")}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`font-medium truncate ${clickedResources.has(idx) ? "text-[var(--success)]" : ""}`}>
-                          {resource.title}
-                        </p>
-                        {resource.duration && (
-                          <span className="text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded border border-[var(--border)]">
-                            {resource.duration}
-                          </span>
-                        )}
+              {/* Quiz Section */}
+              <div>
+                <h2 className="font-semibold text-xl text-white mb-6 flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm">02</span>
+                  {dict.day.quiz}
+                  <span className="text-sm font-normal text-slate-500 bg-slate-800 min-w-[24px] h-6 rounded px-2 flex items-center justify-center">{dayData.quiz.length}</span>
+                </h2>
+
+                {!showResult && !isReviewMode ? (
+                  <form onSubmit={handleSubmitQuiz} className="space-y-8">
+                    <div className="space-y-8">
+                      {dayData.quiz.map((question, idx) => (
+                        <div
+                          key={idx}
+                          className="p-6 rounded-2xl bg-slate-900/40 border border-slate-700/50"
+                        >
+                          <p className="font-medium text-lg text-slate-200 mb-6 flex gap-3">
+                            <span className="text-sky-500 font-bold">Q{idx + 1}.</span>
+                            {question.q}
+                          </p>
+
+                          {question.type === "mcq" && question.choices ? (
+                            <div className="space-y-3 pl-4 border-l-2 border-slate-800 ml-2">
+                              {question.choices.map((choice, cidx) => (
+                                <label
+                                  key={cidx}
+                                  className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border ${userAnswers[idx] === choice
+                                    ? "border-sky-500/50 bg-sky-500/10 text-white"
+                                    : "border-slate-700 bg-slate-800/30 text-slate-400 hover:bg-slate-800 hover:border-slate-600"
+                                    }`}
+                                >
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${userAnswers[idx] === choice
+                                    ? "border-sky-400 bg-sky-500"
+                                    : "border-slate-600 group-hover:border-slate-500"
+                                    }`}>
+                                    {userAnswers[idx] === choice && (
+                                      <div className="w-2 h-2 bg-white rounded-full" />
+                                    )}
+                                  </div>
+                                  <input
+                                    type="radio"
+                                    name={`q${idx}`}
+                                    value={choice}
+                                    checked={userAnswers[idx] === choice}
+                                    onChange={(e) => {
+                                      const newAnswers = [...userAnswers];
+                                      newAnswers[idx] = e.target.value;
+                                      setUserAnswers(newAnswers);
+                                    }}
+                                    className="sr-only"
+                                  />
+                                  <span className="text-sm md:text-base">{choice}</span>
+                                </label>
+                              ))}
+                            </div>
+                          ) : (
+                            <div>
+                              <input
+                                type="text"
+                                value={userAnswers[idx]}
+                                onChange={(e) => {
+                                  const newAnswers = [...userAnswers];
+                                  newAnswers[idx] = e.target.value;
+                                  setUserAnswers(newAnswers);
+                                }}
+                                placeholder="Enter your answer..."
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
+                              />
+                              <p className="text-xs text-slate-500 mt-2 ml-1">
+                                Try to be concise (1-3 words)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                      <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 animate-fade-in flex items-center gap-3">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {error}
                       </div>
-                      {resource.description && (
-                        <p className="text-sm text-[var(--text-tertiary)] truncate">
-                          {resource.description}
-                        </p>
+                    )}
+
+                    {/* Submit Button */}
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        disabled={submittingQuiz || clickedResources.size < dayData.resources.length}
+                        className={`btn btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sky-900/20 ${submittingQuiz ? 'opacity-80' : ''} ${clickedResources.size < dayData.resources.length ? 'opacity-50 cursor-not-allowed bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-700 shadow-none' : ''}`}
+                      >
+                        {submittingQuiz ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="spinner w-5 h-5 border-2" />
+                            {dict.day.grading}
+                          </div>
+                        ) : clickedResources.size < dayData.resources.length ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            {dict.day.completeResources}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2">
+                            {dict.day.submit}
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Results Section */
+                  <div className="space-y-8 animate-fade-in">
+                    {/* Score Card */}
+                    <div className={`rounded-2xl p-8 text-center border-2 ${(currentResult || savedResult)!.score === 3
+                      ? "bg-green-500/10 border-green-500/20"
+                      : (currentResult || savedResult)!.score >= 2
+                        ? "bg-yellow-500/10 border-yellow-500/20"
+                        : "bg-red-500/10 border-red-500/20"
+                      }`}>
+                      <h3 className="font-bold text-lg mb-4 uppercase tracking-wider text-white/80">
+                        {isReviewMode ? dict.day.reviewNotice : dict.day.result}
+                      </h3>
+                      <div className={`text-6xl font-black mb-4 ${(currentResult || savedResult)!.score === 3
+                        ? "text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]"
+                        : (currentResult || savedResult)!.score >= 2
+                          ? "text-yellow-400"
+                          : "text-red-400"
+                        }`}>
+                        {(currentResult || savedResult)!.score}/3
+                      </div>
+                      <p className="text-slate-300 text-lg font-medium leading-relaxed max-w-xl mx-auto">{(currentResult || savedResult)!.feedback}</p>
+
+                      {!(currentResult || savedResult)!.passed && (
+                        <div className="mt-6 p-4 rounded-xl bg-red-500/20 text-red-300 inline-block border border-red-500/20">
+                          <p className="font-bold">Mission Not Complete</p>
+                          <p className="text-sm mt-1 opacity-80">You need a perfect score (3/3) to proceed.</p>
+                        </div>
                       )}
                     </div>
-                    <svg className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Steps Section */}
-          <div className="mb-8">
-            <h2 className="font-semibold mb-4">{dict.day.steps}</h2>
-            <div className="space-y-3">
-              {dayData.steps.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 p-4 rounded-lg bg-[var(--bg-secondary)]"
-                >
-                  <span className="w-6 h-6 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
-                    {idx + 1}
-                  </span>
-                  <p className="text-[var(--text-primary)]">{step}</p>
-                </div>
-              ))}
+                    {/* Answer Review */}
+                    <div className="space-y-6">
+                      <h3 className="font-semibold text-xl text-white">Answer Review</h3>
+                      <div className="space-y-6">
+                        {dayData.quiz.map((question, idx) => {
+                          const displayAnswers = (currentResult || savedResult)!.userAnswers;
+                          const isCorrect = isAnswerCorrect(question, displayAnswers[idx]);
+                          return (
+                            <div
+                              key={idx}
+                              className={`p-6 rounded-2xl border ${isCorrect
+                                ? "border-green-500/20 bg-green-500/5"
+                                : "border-red-500/20 bg-red-500/5"
+                                }`}
+                            >
+                              <p className="font-medium mb-3 text-slate-200">
+                                <span className="text-sm font-bold opacity-50 mr-2">Q{idx + 1}</span>
+                                {question.q}
+                              </p>
+                              <div className="flex flex-col gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 w-24">Your answer:</span>
+                                  <span className={`font-medium ${isCorrect ? "text-green-400" : "text-red-400"}`}>
+                                    {displayAnswers[idx] || "(no answer)"}
+                                  </span>
+                                  {isCorrect ? (
+                                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                  ) : (
+                                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                  )}
+                                </div>
+
+                                {!isCorrect && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 w-24">Correct:</span>
+                                    <span className="text-green-400 font-medium">{getDisplayAnswer(question)}</span>
+                                  </div>
+                                )}
+                                {question.explanation && (
+                                  <div className="mt-3 p-3 rounded bg-slate-900/50 border border-slate-800 text-slate-400 text-xs italic leading-relaxed">
+                                    <span className="font-bold text-slate-500 not-italic mr-2">Explanation:</span>
+                                    {question.explanation}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                      <button
+                        onClick={() => router.push(`/plan?id=${planId}`)}
+                        className="btn btn-secondary flex-1 py-3"
+                      >
+                        {dict.day.backToPlan}
+                      </button>
+                      {/* Always show Try Again button when quiz has been completed */}
+                      <button
+                        onClick={() => {
+                          setUserAnswers(["", "", ""]);
+                          setCurrentResult(null);
+                          setSavedResult(null);
+                          // Clear the saved result from localStorage to allow fresh retry
+                          localStorage.removeItem(`result_${planId}_${dayNumber}`);
+                        }}
+                        className="btn btn-secondary flex-1 py-3 bg-slate-800 border-slate-700 hover:bg-slate-700"
+                      >
+                        {dict.day.tryAgain}
+                      </button>
+                      {(currentResult || savedResult)?.passed && dayNumber < totalDays && (
+                        <button
+                          onClick={() => navigateToDay(dayNumber + 1)}
+                          className="btn btn-primary flex-1 py-3 shadow-lg shadow-sky-500/20"
+                        >
+                          {dict.day.nextDay}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Quiz Section */}
-          {!showResult && !isReviewMode ? (
-            <form onSubmit={handleSubmitQuiz}>
-              <h2 className="font-semibold mb-4">{dict.day.quiz} ({dayData.quiz.length})</h2>
-
-              <div className="space-y-6">
-                {dayData.quiz.map((question, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 rounded-lg bg-[var(--bg-secondary)] border-l-4 border-[var(--primary)]"
-                  >
-                    <p className="font-medium mb-4">
-                      Q{idx + 1}: {question.q}
-                    </p>
-
-                    {question.type === "mcq" && question.choices ? (
-                      <div className="space-y-2">
-                        {question.choices.map((choice, cidx) => (
-                          <label
-                            key={cidx}
-                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${userAnswers[idx] === choice
-                              ? "border-[var(--primary)] bg-[var(--primary-subtle)]"
-                              : "border-transparent bg-[var(--surface)] hover:border-[var(--border)]"
-                              }`}
-                          >
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userAnswers[idx] === choice
-                              ? "border-[var(--primary)] bg-[var(--primary)]"
-                              : "border-[var(--border)]"
-                              }`}>
-                              {userAnswers[idx] === choice && (
-                                <div className="w-2 h-2 bg-white rounded-full" />
-                              )}
-                            </div>
-                            <input
-                              type="radio"
-                              name={`q${idx}`}
-                              value={choice}
-                              checked={userAnswers[idx] === choice}
-                              onChange={(e) => {
-                                const newAnswers = [...userAnswers];
-                                newAnswers[idx] = e.target.value;
-                                setUserAnswers(newAnswers);
-                              }}
-                              className="sr-only"
-                            />
-                            <span>{choice}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div>
-                        <input
-                          type="text"
-                          value={userAnswers[idx]}
-                          onChange={(e) => {
-                            const newAnswers = [...userAnswers];
-                            newAnswers[idx] = e.target.value;
-                            setUserAnswers(newAnswers);
-                          }}
-                          placeholder="Enter your answer"
-                        />
-                        <p className="text-xs text-[var(--text-tertiary)] mt-2">
-                          1-3 words
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="mt-4 p-4 rounded-lg bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] animate-fade-in">
-                  {error}
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submittingQuiz || clickedResources.size < dayData.resources.length}
-                className="btn btn-primary btn-lg w-full mt-6"
-              >
-                {submittingQuiz ? (
-                  <>
-                    <span className="spinner" />
-                    {dict.day.grading}
-                  </>
-                ) : clickedResources.size < dayData.resources.length ? (
-                  dict.day.completeResources
-                ) : (
-                  dict.day.submit
-                )}
-              </button>
-            </form>
-          ) : (
-            /* Results Section */
-            <div className="space-y-6">
-              {/* Score Card */}
-              <div className="surface-raised rounded-xl p-6 text-center">
-                <h3 className="font-medium mb-4">
-                  {isReviewMode ? dict.day.reviewNotice : dict.day.result}
-                </h3>
-                <div className={`text-5xl font-bold mb-2 ${(currentResult || savedResult)!.score === 3
-                  ? "text-[var(--success)]"
-                  : (currentResult || savedResult)!.score >= 2
-                    ? "text-[var(--warning)]"
-                    : "text-[var(--error)]"
-                  }`}>
-                  {(currentResult || savedResult)!.score}/3
-                </div>
-                <p className="text-[var(--text-secondary)]">{(currentResult || savedResult)!.feedback}</p>
-
-                {!(currentResult || savedResult)!.passed && (
-                  <div className="mt-4 p-4 rounded-lg bg-[var(--error-bg)] text-[var(--error)]">
-                    <p className="font-medium">Mission Not Complete</p>
-                    <p className="text-sm mt-1">You need a perfect score (3/3) to proceed.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Answer Review */}
-              <div>
-                <h3 className="font-medium mb-4">Answer Review</h3>
-                <div className="space-y-3">
-                  {dayData.quiz.map((question, idx) => {
-                    const displayAnswers = (currentResult || savedResult)!.userAnswers;
-                    const isCorrect = isAnswerCorrect(question, displayAnswers[idx]);
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-4 rounded-lg border ${isCorrect
-                          ? "border-[var(--success)]/30 bg-[var(--success-bg)]"
-                          : "border-[var(--error)]/30 bg-[var(--error-bg)]"
-                          }`}
-                      >
-                        <p className="font-medium mb-2">Q{idx + 1}: {question.q}</p>
-                        <p className="text-sm">
-                          <span className="font-medium">Your answer: </span>
-                          <span className={isCorrect ? "text-[var(--success)]" : "text-[var(--error)]"}>
-                            {displayAnswers[idx] || "(no answer)"} {isCorrect ? " (correct)" : " (incorrect)"}
-                          </span>
-                        </p>
-                        {!isCorrect && (
-                          <p className="text-sm mt-1">
-                            <span className="font-medium">Correct: </span>
-                            <span className="text-[var(--success)]">{getDisplayAnswer(question)}</span>
-                          </p>
-                        )}
-                        {question.explanation && (
-                          <p className="text-sm mt-2 text-[var(--text-tertiary)] italic">
-                            {question.explanation}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push(`/plan?id=${planId}`)}
-                  className="btn btn-primary flex-1"
-                >
-                  {dict.day.backToPlan}
-                </button>
-                {savedResult && mode !== "doagain" && (
-                  <button
-                    onClick={() => {
-                      setUserAnswers(["", "", ""]);
-                      setCurrentResult(null);
-                      router.push(`/day/${dayNumber}?planId=${planId}&mode=doagain`);
-                    }}
-                    className="btn btn-secondary flex-1"
-                  >
-                    {dict.day.tryAgain}
-                  </button>
-                )}
-              </div>
-
-              {/* Next Day Button */}
-              {(currentResult || savedResult)?.passed && dayNumber < totalDays && (
-                <div className="text-center pt-4">
-                  <p className="text-[var(--text-secondary)] mb-3">
-                    Great job! You've completed Day {dayNumber}!
-                  </p>
-                  <button
-                    onClick={() => navigateToDay(dayNumber + 1)}
-                    className="btn btn-primary btn-lg"
-                  >
-                    {dict.day.nextDay}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Persistent Feedback Section */}
-          <div className="mt-12 pt-8 border-t border-[var(--border)]">
-            <h3 className="text-lg font-semibold mb-4">Rate this Day</h3>
+          <div className="mt-16 pt-10 border-t border-slate-800">
+            <h3 className="text-lg font-bold mb-6 text-slate-300">Rate this Day</h3>
             <FeedbackForm dayPlanId={dayData.id || ""} userId={(session?.user as any)?.id} />
           </div>
         </div>
@@ -864,8 +893,6 @@ export default function DayPage() {
     </main >
   );
 }
-
-// ... FeedbackForm (unchanged or localized if needed, but skipping for now to save complexity)
 
 function FeedbackForm({ dayPlanId, userId }: { dayPlanId: string; userId: string }) {
   const [ratings, setRatings] = useState({ content: 0, difficulty: 0, resource: 0 });
@@ -901,22 +928,23 @@ function FeedbackForm({ dayPlanId, userId }: { dayPlanId: string; userId: string
 
   if (submitted) {
     return (
-      <div className="bg-[var(--success-bg)] p-4 rounded-lg text-[var(--success)] text-center">
-        Thank you for your feedback! We will use this to improve your future lessons.
+      <div className="p-6 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-center animate-fade-in">
+        <p className="font-bold mb-1">Thank you!</p>
+        <p className="text-sm opacity-80">Your feedback helps improve the curriculum.</p>
       </div>
     );
   }
 
   const StarRating = ({ label, value, onChange }: any) => (
-    <div className="flex items-center justify-between max-w-xs mb-2">
-      <span className="text-sm text-[var(--text-secondary)]">{label}</span>
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-sm text-slate-400 font-medium">{label}</span>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
             type="button"
             onClick={() => onChange(star)}
-            className={`text-xl ${star <= value ? "text-yellow-400" : "text-gray-300 hover:text-yellow-200"}`}
+            className={`text-xl transition-all hover:scale-110 ${star <= value ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]" : "text-slate-700 hover:text-slate-500"}`}
           >
             ★
           </button>
@@ -926,11 +954,11 @@ function FeedbackForm({ dayPlanId, userId }: { dayPlanId: string; userId: string
   );
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[var(--bg-secondary)] p-6 rounded-xl">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-        <div>
+    <form onSubmit={handleSubmit} className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+        <div className="space-y-1">
           <StarRating
-            label="Quality"
+            label="Lesson Quality"
             value={ratings.content}
             onChange={(v: number) => setRatings({ ...ratings, content: v })}
           />
@@ -940,23 +968,25 @@ function FeedbackForm({ dayPlanId, userId }: { dayPlanId: string; userId: string
             onChange={(v: number) => setRatings({ ...ratings, difficulty: v })}
           />
           <StarRating
-            label="Resources"
+            label="Usefulness"
             value={ratings.resource}
             onChange={(v: number) => setRatings({ ...ratings, resource: v })}
           />
         </div>
-        <textarea
-          placeholder="What was good? What was bad?"
-          className="w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] resize-none h-full"
-          value={text}
-          onChange={e => setText(e.target.value)}
-        />
+        <div className="relative">
+          <textarea
+            placeholder="Any suggestions for improvement?"
+            className="w-full h-full min-h-[120px] p-4 rounded-xl border border-slate-700 bg-slate-950/50 text-slate-200 focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-colors outline-none resize-none text-sm"
+            value={text}
+            onChange={e => setText(e.target.value)}
+          />
+        </div>
       </div>
       <div className="text-right">
         <button
           type="submit"
           disabled={submitting || !ratings.content}
-          className="btn btn-secondary text-sm"
+          className="btn btn-secondary text-sm px-6 border-slate-600 hover:bg-slate-700 disabled:opacity-50"
         >
           {submitting ? "Sending..." : "Submit Feedback"}
         </button>

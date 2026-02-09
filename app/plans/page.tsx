@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import Logo from "@/components/Logo";
 import { getDictionary, Language } from "@/lib/i18n";
 
 interface PlanSummary {
@@ -25,7 +24,6 @@ export default function PlansPage() {
   const [language, setLanguage] = useState<Language>("en");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isDark, setIsDark] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -108,10 +106,7 @@ export default function PlansPage() {
     translatePlanTitles();
   }, [plans, language, session]);
 
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
+
 
   const handleDeletePlan = async (planId: string) => {
     const userId = (session?.user as any)?.id;
@@ -138,63 +133,42 @@ export default function PlansPage() {
 
   if (status === "loading" || loading) {
     return (
-      <main className="page-bg flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <div className="spinner mx-auto mb-4" style={{ width: 32, height: 32, borderWidth: 3 }} />
-          <p className="text-[var(--text-secondary)]">{dict.common.loading}</p>
+      <main className="page-bg-gradient min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center p-8 space-y-4">
+          <div className="relative w-16 h-16">
+            {/* Outer Ring */}
+            <div className="absolute inset-0 rounded-full border-4 border-slate-700/50"></div>
+            {/* Spinning Ring */}
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-sky-500 border-r-purple-500 animate-spin"></div>
+            {/* Inner Pulse */}
+            <div className="absolute inset-4 rounded-full bg-slate-800 animate-pulse flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-white/50"></div>
+            </div>
+          </div>
+          <p className="text-slate-400 text-sm font-medium">Loading...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="page-bg-gradient">
-      <div className="container-default py-6 md:py-8">
-        {/* Header */}
-        <header className="flex justify-between items-center mb-8">
-          <Logo size="md" />
-
-          <div className="flex items-center gap-3">
-            {/* ... Toggle ... */}
-            <button
-              onClick={toggleDarkMode}
-              className="btn btn-ghost p-2"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </button>
-            <span className="text-sm hidden md:block text-[var(--text-secondary)]">
-              {session?.user?.name || session?.user?.email}
-            </span>
-            <Link href="/profile" className="btn btn-ghost p-2" title="Profile">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </Link>
-            <button onClick={() => signOut()} className="btn btn-danger text-sm">
-              Sign out
-            </button>
-          </div>
-        </header>
-
+    <main className="page-bg-gradient min-h-screen">
+      <div className="container-default pt-24 pb-12">
         {/* Page Title & Action */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 animate-fade-in">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold mb-1">My Plans</h1>
-            <p className="text-[var(--text-secondary)]">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              <span className="text-gradient">My Journey</span>
+            </h1>
+            <p className="text-slate-400">
               {plans.length} {dict.dashboard.plansCreated}
             </p>
           </div>
           <Link href="/">
-            <button className="btn btn-primary">
+            <button className="btn btn-primary shadow-lg shadow-sky-500/20">
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               {dict.dashboard.createPlan}
             </button>
           </Link>
@@ -202,21 +176,24 @@ export default function PlansPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] animate-fade-in">
+          <div className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 animate-fade-in flex items-center gap-3">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {error}
           </div>
         )}
 
         {/* Empty State */}
         {plans.length === 0 ? (
-          <div className="card p-12 text-center animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-[var(--text-tertiary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <div className="glass-card p-12 text-center animate-slide-up max-w-lg mx-auto border-dashed border-2 border-slate-700/50 bg-slate-900/30">
+            <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold mb-2">{dict.dashboard.noPlansYet}</h2>
-            <p className="text-[var(--text-secondary)] mb-6 max-w-sm mx-auto">
+            <h2 className="text-xl font-bold mb-3 text-slate-200">{dict.dashboard.noPlansYet}</h2>
+            <p className="text-slate-400 mb-8 max-w-sm mx-auto">
               {dict.dashboard.startJourney}
             </p>
             <Link href="/">
@@ -227,15 +204,17 @@ export default function PlansPage() {
           </div>
         ) : (
           /* Plans Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {plans.map((plan) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {plans.map((plan, index) => {
               const progress = (plan.completedDays / plan.totalDays) * 100;
               const isComplete = plan.completedDays === plan.totalDays;
 
               return (
                 <div
                   key={plan.id}
-                  className={`card card-hover p-6 h-full relative group ${isComplete ? "border-[var(--success)]/30" : ""}`}
+                  className={`glass-card p-5 h-full relative group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/10 flex flex-col ${isComplete ? "border-green-500/20 bg-green-900/5" : ""
+                    }`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Delete Button */}
                   <button
@@ -244,7 +223,7 @@ export default function PlansPage() {
                       e.stopPropagation();
                       setConfirmDeleteId(plan.id);
                     }}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-tertiary)] hover:text-[var(--error)] hover:bg-[var(--error-bg)]"
+                    className="absolute top-4 right-4 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-slate-400 hover:text-red-400 hover:bg-red-500/10 z-10"
                     title={language === "ko" ? "플랜 삭제" : "Delete plan"}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,60 +231,53 @@ export default function PlansPage() {
                     </svg>
                   </button>
 
-                  <Link href={`/plan?id=${plan.id}`} className="block">
+                  <Link href={`/plan?id=${plan.id}`} className="block flex-1 flex flex-col">
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-4">
-                      <h2 className="text-lg font-medium line-clamp-2 pr-8">
+                    <div className="mb-4 pr-8">
+                      <h2 className="text-xl font-bold line-clamp-2 text-slate-100 group-hover:text-sky-400 transition-colors">
                         {translatedTitles[plan.id] || plan.planTitle}
                       </h2>
-                      {isComplete && (
-                        <span className="flex-shrink-0 text-[var(--success)]">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                      )}
                     </div>
 
                     {/* Meta Info */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <span className="badge">
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
                         {new Date(plan.createdAt).toLocaleDateString()}
                       </span>
-                      <span className="badge">
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
                         {plan.totalDays} Days
                       </span>
-                      {plan.minutesPerDay && (
-                        <span className="badge">
-                          {plan.minutesPerDay}m/day
-                        </span>
-                      )}
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="mb-2">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-[var(--text-secondary)]">
-                          {plan.completedDays}/{plan.totalDays} {dict.dashboard.completed}
-                        </span>
-                        <span className={`font-medium ${isComplete ? "text-[var(--success)]" : "text-[var(--primary)]"}`}>
-                          {Math.round(progress)}%
-                        </span>
+                    <div className="mt-auto">
+                      {/* Progress Bar */}
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs font-semibold uppercase tracking-wider mb-2">
+                          <span className={isComplete ? "text-green-400" : "text-sky-400"}>
+                            {isComplete ? "Completed" : "In Progress"}
+                          </span>
+                          <span className="text-slate-400">
+                            {Math.round(progress)}%
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${isComplete
+                              ? "bg-gradient-to-r from-green-500 to-emerald-400"
+                              : "bg-gradient-to-r from-sky-500 to-blue-500"
+                              }`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="progress-track h-1.5">
-                        <div
-                          className={`progress-fill ${isComplete ? "progress-fill-success" : ""}`}
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
 
-                    {/* Status */}
-                    <p className={`text-sm ${isComplete ? "text-[var(--success)]" : "text-[var(--text-tertiary)]"}`}>
-                      {isComplete
-                        ? dict.dashboard.completed
-                        : `${plan.totalDays - plan.completedDays} ${dict.dashboard.remaining}`}
-                    </p>
+                      {/* Status Text */}
+                      <p className="text-xs text-slate-500 font-medium">
+                        {isComplete
+                          ? dict.dashboard.completed
+                          : `${plan.completedDays}/${plan.totalDays} days completed`}
+                      </p>
+                    </div>
                   </Link>
                 </div>
               );
@@ -315,41 +287,41 @@ export default function PlansPage() {
 
         {/* Delete Confirmation Modal */}
         {confirmDeleteId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in px-4">
-            <div className="bg-[var(--surface)] p-6 rounded-xl shadow-xl max-w-sm w-full border border-[var(--border)]">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[var(--error-bg)] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-[var(--error)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
+            <div className="glass-card p-6 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-700">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 border border-red-500/20">
+                  <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold">
+                <h3 className="text-lg font-bold text-slate-100">
                   {language === "ko" ? "플랜 삭제" : "Delete Plan"}
                 </h3>
               </div>
-              <p className="text-[var(--text-secondary)] mb-2">
+              <p className="text-slate-400 mb-2 leading-relaxed">
                 {language === "ko"
                   ? "이 플랜과 모든 학습 기록이 영구적으로 삭제됩니다."
                   : "This plan and all learning progress will be permanently deleted."}
               </p>
-              <p className="text-sm text-[var(--error)] font-medium mb-6">
+              <p className="text-sm text-red-400 font-medium mb-8">
                 {language === "ko" ? "이 작업은 되돌릴 수 없습니다." : "This action cannot be undone."}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDeleteId(null)}
                   disabled={!!deletingPlanId}
-                  className="btn btn-secondary flex-1"
+                  className="btn btn-secondary flex-1 py-3"
                 >
                   {language === "ko" ? "취소" : "Cancel"}
                 </button>
                 <button
                   onClick={() => handleDeletePlan(confirmDeleteId)}
                   disabled={!!deletingPlanId}
-                  className="btn btn-danger flex-1 flex items-center justify-center gap-2"
+                  className="btn btn-danger flex-1 flex items-center justify-center gap-2 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20"
                 >
                   {deletingPlanId === confirmDeleteId
-                    ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                    ? <span className="spinner w-4 h-4 border-2" />
                     : (language === "ko" ? "삭제" : "Delete")}
                 </button>
               </div>

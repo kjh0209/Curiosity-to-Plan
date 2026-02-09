@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -43,20 +43,23 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-sm">
-      {/* Title */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-semibold mb-2">Welcome back</h1>
-        <p className="text-[var(--text-secondary)]">
-          Sign in to continue your learning journey
-        </p>
-      </div>
+    <div className="w-full max-w-md">
+      {/* Glass Card */}
+      <div className="glass-card p-8 md:p-10 rounded-2xl border border-slate-700/50 shadow-2xl shadow-sky-900/10">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
+          <p className="text-slate-400">
+            Sign in to continue your learning journey
+          </p>
+        </div>
 
-      {/* Card */}
-      <div className="card p-6">
         {/* Success Message */}
         {registered && (
-          <div className="mb-6 p-3 rounded-lg bg-[var(--success-bg)] border border-[var(--success)]/20 text-[var(--success)] text-sm animate-fade-in">
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
             Account created successfully. Please sign in.
           </div>
         )}
@@ -64,7 +67,7 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+            <label className="block text-sm font-medium mb-2 text-slate-300">
               Email
             </label>
             <input
@@ -75,12 +78,13 @@ function LoginForm() {
               required
               disabled={loading}
               autoComplete="email"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+            <label className="block text-sm font-medium mb-2 text-slate-300">
               Password
             </label>
             <input
@@ -91,12 +95,16 @@ function LoginForm() {
               required
               disabled={loading}
               autoComplete="current-password"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
             />
           </div>
 
           {/* Error */}
           {error && (
-            <div className="p-3 rounded-lg bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] text-sm animate-fade-in">
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {error}
             </div>
           )}
@@ -105,13 +113,13 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full"
+            className="btn btn-primary w-full py-3.5 text-base font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all"
           >
             {loading ? (
-              <>
-                <span className="spinner" />
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Signing in...
-              </>
+              </div>
             ) : (
               "Sign in"
             )}
@@ -119,80 +127,73 @@ function LoginForm() {
         </form>
 
         {/* Divider */}
-        <div className="divider" />
+        <div className="my-6 flex items-center gap-4">
+          <div className="flex-1 h-px bg-slate-700/50"></div>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+          <div className="flex-1 h-px bg-slate-700/50"></div>
+        </div>
 
         {/* Sign up link */}
-        <p className="text-center text-sm text-[var(--text-secondary)]">
+        <p className="text-center text-sm text-slate-400">
           Don't have an account?{" "}
-          <Link href="/auth/register" className="link">
+          <Link href="/auth/register" className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
             Create one
           </Link>
         </p>
-      </div>
-
-      {/* Features */}
-      <div className="flex flex-wrap justify-center gap-2 mt-8">
-        {['Personalized Plans', 'Progress Tracking', 'Free to Start'].map((feature) => (
-          <span key={feature} className="badge">
-            {feature}
-          </span>
-        ))}
       </div>
     </div>
   );
 }
 
 export default function LoginPage() {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDark(darkMode);
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
-
   return (
     <main className="page-bg-gradient min-h-screen flex flex-col">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <header className="flex justify-between items-center p-4 md:p-6">
+      <header className="relative z-10 p-4 md:p-6">
         <Logo size="md" />
-        <button
-          onClick={toggleDarkMode}
-          className="btn btn-ghost p-2"
-          aria-label="Toggle dark mode"
-        >
-          {isDark ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-        </button>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="relative z-10 flex-1 flex items-center justify-center p-4">
         <Suspense fallback={
           <div className="text-center">
-            <div className="spinner mx-auto mb-4" />
-            <p className="text-[var(--text-secondary)]">Loading...</p>
+            <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-slate-400">Loading...</p>
           </div>
         }>
           <LoginForm />
         </Suspense>
       </div>
+
+      {/* Footer with Features */}
+      <footer className="relative z-10 pb-8 pt-4">
+        <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-500">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Personalized Plans
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+            </svg>
+            Progress Tracking
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Free to Start
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

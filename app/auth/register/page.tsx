@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -19,28 +19,12 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isDark, setIsDark] = useState(false);
 
   // Optional API settings
   const [showApiSettings, setShowApiSettings] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [openaiModel, setOpenaiModel] = useState("gpt-4o-mini");
   const [openaiDailyQuota, setOpenaiDailyQuota] = useState(50);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDark(darkMode);
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,43 +71,34 @@ export default function RegisterPage() {
 
   return (
     <main className="page-bg-gradient min-h-screen flex flex-col">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <header className="flex justify-between items-center p-4 md:p-6">
+      <header className="relative z-10 p-4 md:p-6">
         <Logo size="md" />
-        <button
-          onClick={toggleDarkMode}
-          className="btn btn-ghost p-2"
-          aria-label="Toggle dark mode"
-        >
-          {isDark ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-        </button>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4 py-8">
-        <div className="w-full max-w-sm">
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold mb-2">Create your account</h1>
-            <p className="text-[var(--text-secondary)]">
-              Start your personalized learning journey
-            </p>
-          </div>
+      <div className="relative z-10 flex-1 flex items-center justify-center p-4 py-8">
+        <div className="w-full max-w-md">
+          {/* Glass Card */}
+          <div className="glass-card p-8 md:p-10 rounded-2xl border border-slate-700/50 shadow-2xl shadow-purple-900/10">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2">Create your account</h1>
+              <p className="text-slate-400">
+                Start your personalized learning journey
+              </p>
+            </div>
 
-          {/* Card */}
-          <div className="card p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                <label className="block text-sm font-medium mb-2 text-slate-300">
                   Name
                 </label>
                 <input
@@ -134,12 +109,13 @@ export default function RegisterPage() {
                   required
                   disabled={loading}
                   autoComplete="name"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
                 />
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                <label className="block text-sm font-medium mb-2 text-slate-300">
                   Email
                 </label>
                 <input
@@ -150,12 +126,13 @@ export default function RegisterPage() {
                   required
                   disabled={loading}
                   autoComplete="email"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
                 />
               </div>
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                <label className="block text-sm font-medium mb-2 text-slate-300">
                   Password
                 </label>
                 <input
@@ -166,12 +143,13 @@ export default function RegisterPage() {
                   required
                   disabled={loading}
                   autoComplete="new-password"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
                 />
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                <label className="block text-sm font-medium mb-2 text-slate-300">
                   Confirm password
                 </label>
                 <input
@@ -182,6 +160,7 @@ export default function RegisterPage() {
                   required
                   disabled={loading}
                   autoComplete="new-password"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
                 />
               </div>
 
@@ -189,11 +168,17 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowApiSettings(!showApiSettings)}
-                className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors"
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-dashed border-slate-700 text-sm text-slate-400 hover:border-slate-600 hover:text-slate-300 transition-colors cursor-pointer"
               >
-                <span>Advanced: Use your own OpenAI API</span>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Advanced: Use your own OpenAI API</span>
+                </div>
                 <svg
-                  className={`w-4 h-4 transition-transform ${showApiSettings ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform duration-200 ${showApiSettings ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -204,13 +189,13 @@ export default function RegisterPage() {
 
               {/* API Settings Panel */}
               {showApiSettings && (
-                <div className="p-4 rounded-lg bg-[var(--bg-secondary)] space-y-4 animate-fade-in">
-                  <p className="text-xs text-[var(--text-tertiary)]">
+                <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 space-y-4 animate-fade-in">
+                  <p className="text-xs text-slate-500">
                     Optional: Enter your OpenAI API key for unlimited usage. If left empty, you'll use our free Gemini-powered AI.
                   </p>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                    <label className="block text-sm font-medium mb-2 text-slate-300">
                       OpenAI API Key
                     </label>
                     <input
@@ -218,32 +203,40 @@ export default function RegisterPage() {
                       value={openaiApiKey}
                       onChange={(e) => setOpenaiApiKey(e.target.value)}
                       placeholder="sk-..."
-                      className="text-sm"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors outline-none font-mono text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
+                    <label className="block text-sm font-medium mb-2 text-slate-300">
                       Model
                     </label>
-                    <select
-                      value={openaiModel}
-                      onChange={(e) => setOpenaiModel(e.target.value)}
-                    >
-                      {openAIModels.map(model => (
-                        <option key={model.value} value={model.value}>
-                          {model.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={openaiModel}
+                        onChange={(e) => setOpenaiModel(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white appearance-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors outline-none cursor-pointer"
+                      >
+                        {openAIModels.map(model => (
+                          <option key={model.value} value={model.value}>
+                            {model.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-[var(--text-primary)]">
+                      <label className="text-sm font-medium text-slate-300">
                         Daily limit
                       </label>
-                      <span className="text-sm font-semibold text-[var(--primary)]">
+                      <span className="text-sm font-bold text-emerald-400">
                         {openaiDailyQuota}
                       </span>
                     </div>
@@ -254,8 +247,9 @@ export default function RegisterPage() {
                       step={10}
                       value={openaiDailyQuota}
                       onChange={(e) => setOpenaiDailyQuota(parseInt(e.target.value))}
+                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                     />
-                    <div className="flex justify-between text-xs text-[var(--text-tertiary)] mt-1">
+                    <div className="flex justify-between text-xs text-slate-500 mt-1">
                       <span>10</span>
                       <span>500</span>
                     </div>
@@ -265,7 +259,10 @@ export default function RegisterPage() {
 
               {/* Error */}
               {error && (
-                <div className="p-3 rounded-lg bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] text-sm animate-fade-in">
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   {error}
                 </div>
               )}
@@ -274,13 +271,13 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary w-full"
+                className="btn btn-primary w-full py-3.5 text-base font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all mt-2"
               >
                 {loading ? (
-                  <>
-                    <span className="spinner" />
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Creating account...
-                  </>
+                  </div>
                 ) : (
                   "Create account"
                 )}
@@ -288,12 +285,16 @@ export default function RegisterPage() {
             </form>
 
             {/* Divider */}
-            <div className="divider" />
+            <div className="my-6 flex items-center gap-4">
+              <div className="flex-1 h-px bg-slate-700/50"></div>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+              <div className="flex-1 h-px bg-slate-700/50"></div>
+            </div>
 
             {/* Sign in link */}
-            <p className="text-center text-sm text-[var(--text-secondary)]">
+            <p className="text-center text-sm text-slate-400">
               Already have an account?{" "}
-              <Link href="/auth/login" className="link">
+              <Link href="/auth/login" className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
                 Sign in
               </Link>
             </p>

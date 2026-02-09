@@ -176,9 +176,38 @@ export default function SlidePage() {
     if (loading || generating) {
         return (
             <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-                <h2 className="text-2xl font-bold mb-2">{dict.slide.loadingTitle}</h2>
+                <div className="relative w-20 h-20 mb-8">
+                    <div className="absolute inset-0 rounded-full border-t-4 border-blue-500 animate-spin"></div>
+                    <div className="absolute inset-2 rounded-full border-r-4 border-purple-500 animate-spin-reverse"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+                <h2 className="text-2xl font-bold mb-2 animate-pulse">{dict.slide.loadingTitle}</h2>
                 <p className="text-gray-400">{dict.slide.loadingSubtitle}</p>
+                <style jsx>{`
+                    @keyframes spin-reverse {
+                        to { transform: rotate(-360deg); }
+                    }
+                    .animate-spin-reverse {
+                        animation: spin-reverse 1s linear infinite;
+                    }
+                `}</style>
+            </main>
+        );
+    }
+
+    if (error) {
+        return (
+            <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                    <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Error</h2>
+                <p className="text-gray-400 mb-6">{error}</p>
+                <Link href={`/day/${dayNumber}?planId=${planId}`} className="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                    {dict.slide.exit}
+                </Link>
             </main>
         );
     }
@@ -195,13 +224,17 @@ export default function SlidePage() {
             autoFocus
         >
             {/* Header */}
-            <header className="p-4 flex items-center justify-between z-10">
-                <Link href={`/day/${dayNumber}?planId=${planId}`} className="flex items-center gap-2 text-gray-400 hover:text-white transition">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    <span>{dict.slide.exit}</span>
+            <header className="fixed top-0 left-0 right-0 p-4 flex items-center justify-between z-20 bg-black/50 backdrop-blur-md border-b border-white/5">
+                <Link href={`/day/${dayNumber}?planId=${planId}`} className="flex items-center gap-2 text-gray-400 hover:text-white transition group">
+                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </div>
+                    <span className="hidden sm:inline font-medium">{dict.slide.exit}</span>
                 </Link>
-                <div className="text-sm font-medium text-gray-500">
-                    {dict.slide.slide} {currentSlide + 1} / {slides.length}
+                <div className="px-3 py-1.5 rounded-full bg-gray-800/80 border border-gray-700 text-sm font-medium text-gray-300">
+                    <span className="text-blue-400">{currentSlide + 1}</span>
+                    <span className="mx-1 opacity-50">/</span>
+                    <span>{slides.length}</span>
                 </div>
             </header>
 

@@ -47,3 +47,6 @@ gen-lang-client-0901929133-d0c4fcdae059.json
 .agent
 .claude
 do.txt
+videoplayback.mp4
+videoplayback.txt
+transcribe.py

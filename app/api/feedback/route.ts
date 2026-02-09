@@ -32,14 +32,17 @@ export async function POST(req: NextRequest) {
         }
 
         // Create feedback and log to Opik
+        // Only include dayPlanId if it's a valid non-empty string
+        const validDayPlanId = dayPlanId && dayPlanId.trim() !== "" ? dayPlanId : null;
+
         const feedback = await withOpikTrace(
             "user_feedback",
-            { userId, dayPlanId, ratings: { contentRating, difficultyRating, resourceRating } },
+            { userId, dayPlanId: validDayPlanId, ratings: { contentRating, difficultyRating, resourceRating } },
             async () => {
                 return await prisma.userFeedback.create({
                     data: {
                         userId,
-                        dayPlanId,
+                        dayPlanId: validDayPlanId,
                         contentRating,
                         difficultyRating,
                         resourceRating,

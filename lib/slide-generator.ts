@@ -102,6 +102,14 @@ Create slides with the following layouts:
     "title": "Comparison Title",
     "content": ["Left side concept", "Right side concept", "Key difference 1", "Key difference 2"],
     "speakerNotes": "Explanation of the comparison"
+  },
+  {
+    "layout": "code",
+    "title": "Code Example Title",
+    "content": ["Explanation of what this code does", "Key concept being demonstrated"],
+    "code": "// Actual working code example here\\nconst example = 'hello';\\nfunction demo() {\\n  return example;\\n}",
+    "language": "javascript",
+    "speakerNotes": "Walk through the code line by line"
   }
 ]
 
@@ -112,6 +120,7 @@ Create slides with the following layouts:
 4. Use concrete examples, not abstract concepts
 5. Include "imageQuery" for visual slides with good search terms
 6. Include "keyTakeaway" for most slides
+7. ⚠️ MANDATORY: If using "code" layout, you MUST include the "code" property with REAL, WORKING code examples (multi-line with \\n)
 
 🚫 RESTRICTIONS:
 - For non-technical topics (Music, Art, Sports, Languages):
@@ -119,7 +128,8 @@ Create slides with the following layouts:
   • Focus on "bullets", "split", and "image" layouts
 - For technical topics (Programming, Math, Science):
   • Include relevant code examples with proper syntax
-  • Use "code" layout appropriately
+  • Use "code" layout with actual code in the "code" property
+  • NEVER leave the "code" property empty or null
 
 IMPORTANT: Return ONLY the raw JSON array. No markdown code blocks.`;
 
