@@ -154,11 +154,13 @@ export default function DayPage() {
         const cachedData = localStorage.getItem(cacheKey);
 
         if (cachedData) {
-          setDayData(JSON.parse(cachedData));
-          setDayData(JSON.parse(cachedData));
-
-          // Re-fetch book cover if it's there
-          // The effect below handles book cover fetch when dayData changes
+          const parsed = JSON.parse(cachedData);
+          // Ensure dayPlan id is always present (old caches may lack it)
+          if (!parsed.id && dayMeta.id) {
+            parsed.id = dayMeta.id;
+            localStorage.setItem(cacheKey, JSON.stringify(parsed));
+          }
+          setDayData(parsed);
         } else if (dayMeta.steps && dayMeta.quiz && userLang === planData.plan.language) {
           // Use Pre-generated content from DB (only if languages match)
           const data: DayData = {
