@@ -35,9 +35,49 @@ export async function POST(req: NextRequest) {
         // Only include dayPlanId if it's a valid non-empty string
         const validDayPlanId = dayPlanId && dayPlanId.trim() !== "" ? dayPlanId : null;
 
+        // Fetch dayPlan context so Opik trace is self-contained for analysis
+        let dayPlanContext: Record<string, unknown> = {};
+        if (validDayPlanId) {
+            const dayPlan = await prisma.dayPlan.findUnique({
+                where: { id: validDayPlanId },
+                select: {
+                    dayNumber: true,
+                    missionTitle: true,
+                    focus: true,
+                    difficulty: true,
+                    steps: true,
+                    resources: true,
+                    plan: {
+                        select: {
+                            interest: true,
+                            totalDays: true,
+                            language: true,
+                        },
+                    },
+                },
+            });
+            if (dayPlan) {
+                dayPlanContext = {
+                    dayNumber: dayPlan.dayNumber,
+                    missionTitle: dayPlan.missionTitle,
+                    focus: dayPlan.focus,
+                    difficulty: dayPlan.difficulty,
+                    steps: dayPlan.steps ? JSON.parse(dayPlan.steps) : [],
+                    resources: dayPlan.resources ? JSON.parse(dayPlan.resources) : [],
+                    plan: dayPlan.plan,
+                };
+            }
+        }
+
         const feedback = await withOpikTrace(
             "user_feedback",
-            { userId, dayPlanId: validDayPlanId, ratings: { contentRating, difficultyRating, resourceRating } },
+            {
+                userId,
+                dayPlanId: validDayPlanId,
+                ratings: { contentRating, difficultyRating, resourceRating },
+                textFeedback: textFeedback || null,
+                dayPlan: dayPlanContext,
+            },
             async () => {
                 return await prisma.userFeedback.create({
                     data: {
@@ -50,7 +90,12 @@ export async function POST(req: NextRequest) {
                     },
                 });
             },
-            { feedbackType: "day_completion" }
+            {
+                feedbackType: "day_completion",
+                ...(dayPlanContext.missionTitle ? { missionTitle: dayPlanContext.missionTitle } : {}),
+                ...(dayPlanContext.difficulty ? { difficulty: dayPlanContext.difficulty } : {}),
+                ...(dayPlanContext.dayNumber ? { dayNumber: dayPlanContext.dayNumber } : {}),
+            }
         );
 
         return NextResponse.json({ success: true, feedback });
