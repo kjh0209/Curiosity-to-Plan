@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 export default function NewPlanPage() {
     const router = useRouter();
@@ -14,7 +14,7 @@ export default function NewPlanPage() {
     const [totalDays, setTotalDays] = useState(14);
     const [riskStyle, setRiskStyle] = useState("BALANCED");
     const [baselineLevel, setBaselineLevel] = useState("BEGINNER");
-    const [language, setLanguage] = useState("en");
+    const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
     const [resourceSort, setResourceSort] = useState("relevance");
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -39,7 +39,9 @@ export default function NewPlanPage() {
                 .then(res => res.json())
                 .then(data => {
                     if (data.profile?.language) {
-                        setLanguage(data.profile.language);
+                        const lang = data.profile.language as Language;
+                        saveLanguage(lang);
+                        setLanguage(lang);
                     }
                     // Calculate remaining plans
                     const tier = data.profile?.subscriptionTier || "free";

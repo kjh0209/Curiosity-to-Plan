@@ -4,19 +4,18 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
 
-  // Fetch profile language when logged in, otherwise default to English
+  // Fetch profile language when logged in to keep in sync and update cache
   useEffect(() => {
     if (status === "loading") return;
 
     if (session) {
-      // User is logged in - fetch their profile language
       const fetchProfileLanguage = async () => {
         try {
           const userId = (session.user as any).id;
@@ -24,7 +23,9 @@ export default function LandingPage() {
           if (res.ok) {
             const data = await res.json();
             if (data.profile?.language) {
-              setLanguage(data.profile.language as Language);
+              const lang = data.profile.language as Language;
+              saveLanguage(lang);
+              setLanguage(lang);
             }
           }
         } catch (err) {
@@ -32,9 +33,6 @@ export default function LandingPage() {
         }
       };
       fetchProfileLanguage();
-    } else {
-      // User is not logged in - always use English
-      setLanguage("en");
     }
   }, [session, status]);
 

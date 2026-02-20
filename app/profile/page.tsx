@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { formatNumber } from "@/lib/format-utils";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 interface Profile {
   id: string;
@@ -72,7 +72,7 @@ export default function ProfilePage() {
 
   // Form states
   const [name, setName] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
   const [resourceSort, setResourceSort] = useState("relevance");
   const [riskStyle, setRiskStyle] = useState("BALANCED");
 
@@ -91,7 +91,7 @@ export default function ProfilePage() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   // Dictionary
-  const dict = getDictionary((profile?.language as Language) || "en");
+  const dict = getDictionary(language);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -126,7 +126,9 @@ export default function ProfilePage() {
 
         // Set form values
         setName(data.profile.name || "");
-        setLanguage(data.profile.language || "en");
+        const profileLang = (data.profile.language || "en") as Language;
+        saveLanguage(profileLang);
+        setLanguage(profileLang);
         setResourceSort(data.profile.resourceSort || "relevance");
 
         setRiskStyle(data.profile.riskStyle || "BALANCED");
@@ -451,7 +453,7 @@ export default function ProfilePage() {
                     <div className="relative">
                       <select
                         value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
+                        onChange={(e) => setLanguage(e.target.value as Language)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white appearance-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors outline-none cursor-pointer"
                       >
                         {languageOptions.map(opt => (
@@ -521,7 +523,7 @@ export default function ProfilePage() {
                   <div className={`p-2 rounded-lg ${profile.subscriptionTier === "pro" ? "bg-amber-500/10 text-amber-400" : "bg-sky-500/10 text-sky-400"}`}>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                   </div>
-                  <h2 className="font-bold text-lg text-white">Subscription</h2>
+                  <h2 className="font-bold text-lg text-white">{dict.profile.subscription}</h2>
                   {profile.subscriptionTier === "pro" && (
                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-black">
                       PRO
@@ -533,12 +535,12 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="text-sm font-bold text-slate-300 mb-1">
-                        {profile.subscriptionTier === "pro" ? "Pro Plan" : "Free Plan"}
+                        {profile.subscriptionTier === "pro" ? dict.profile.proPlan : dict.profile.freePlan}
                       </div>
                       <p className="text-xs text-slate-500">
                         {profile.subscriptionTier === "pro"
-                          ? "GPT-4o Mini + 1.5M tokens/mo"
-                          : "Gemini Flash + 7K tokens/mo"}
+                          ? dict.profile.proModelInfo
+                          : dict.profile.freeModelInfo}
                       </p>
                     </div>
                     <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border ${
@@ -546,18 +548,18 @@ export default function ProfilePage() {
                         ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                         : "bg-slate-800 text-slate-400 border-slate-700"
                     }`}>
-                      {profile.subscriptionTier === "pro" ? "$12/mo" : "Free"}
+                      {profile.subscriptionTier === "pro" ? "$12/mo" : dict.profile.freeLabel}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                      <div className="text-slate-500 text-xs mb-1">Plans / day</div>
+                      <div className="text-slate-500 text-xs mb-1">{dict.profile.plansPerDay}</div>
                       <div className="font-bold text-white">{profile.subscriptionTier === "pro" ? "5" : "3"}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                      <div className="text-slate-500 text-xs mb-1">Days / day</div>
-                      <div className="font-bold text-white">{profile.subscriptionTier === "pro" ? "∞" : "1"}</div>
+                      <div className="text-slate-500 text-xs mb-1">{dict.profile.daysPerDay}</div>
+                      <div className="font-bold text-white">{profile.subscriptionTier === "pro" ? dict.common.unlimited : "1"}</div>
                     </div>
                   </div>
                 </div>
@@ -574,7 +576,7 @@ export default function ProfilePage() {
                         <span className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
                         Loading...
                       </div>
-                    ) : "Manage Subscription"}
+                    ) : dict.profile.manageSubscription}
                   </button>
                 ) : (
                   <Link href="/pricing">
@@ -635,7 +637,7 @@ export default function ProfilePage() {
                   <span className="text-sm font-medium text-slate-400">{dict.dashboard.streak}</span>
                   <span className="font-bold text-amber-400 flex items-center gap-1">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /></svg>
-                    {profile.streak} days
+                    {profile.streak} {dict.dashboard.days}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-700/50">
@@ -665,7 +667,7 @@ export default function ProfilePage() {
                 <div className={`p-4 rounded-xl bg-slate-900/30 border ${profile.subscriptionTier === "pro" ? "border-amber-500/20" : "border-sky-500/20"}`}>
                   <div className="flex justify-between text-sm mb-2">
                     <span className={`font-bold text-xs uppercase tracking-wider ${profile.subscriptionTier === "pro" ? "text-amber-400" : "text-sky-400"}`}>
-                      {profile.subscriptionTier === "pro" ? "AI Tokens (Pro)" : "AI Tokens (Free)"}
+                      {profile.subscriptionTier === "pro" ? dict.profile.aiTokensPro : dict.profile.aiTokensFree}
                     </span>
                     <span className="font-mono text-xs text-slate-300">
                       {formatNumber(profile.quota.gemini.used)} / {formatNumber(profile.quota.gemini.limit)}
@@ -680,7 +682,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    {profile.subscriptionTier === "pro" ? "Pro: 1.5M tokens/month" : "Free: 7K tokens/month"}
+                    {profile.subscriptionTier === "pro" ? dict.profile.proTokensInfo : dict.profile.freeTokensInfo}
                   </p>
                 </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 interface DayPlan {
   id: string;
@@ -57,7 +57,7 @@ function PlanContent() {
   const [error, setError] = useState("");
 
   // Localization
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
   const dict = getDictionary(language);
 
   // Translation state for plan/day titles
@@ -159,7 +159,7 @@ function PlanContent() {
         const data = await res.json();
         if (data.profile?.language) {
           const newLang = data.profile.language as Language;
-          console.log('[Language] Fetched:', newLang, 'Current:', language);
+          saveLanguage(newLang);
           if (newLang !== language) {
             setLanguage(newLang);
           }

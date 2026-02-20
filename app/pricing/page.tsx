@@ -1,21 +1,26 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-const features = [
-  { name: "Plans per day", free: "3", pro: "5" },
-  { name: "Days openable per day", free: "1", pro: "Unlimited" },
-  { name: "AI Model", free: "Gemini Flash", pro: "GPT-4o Mini" },
-  { name: "AI Tokens / month", free: "7,000", pro: "1,500,000" },
-  { name: "Response speed", free: "Standard", pro: "Fast" },
-  { name: "All learning features", free: "✓", pro: "✓" },
-];
+import { getDictionary, Language, getInitialLanguage } from "@/lib/i18n";
 
 export default function PricingPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [lang] = useState<Language>(() => getInitialLanguage());
+
+  const dict = getDictionary(lang);
+  const p = dict.pricing;
+
+  const features = [
+    { name: p.featurePlansPerDay, free: "3", pro: "5" },
+    { name: p.featureDaysPerDay, free: "1", pro: dict.common.unlimited },
+    { name: p.featureAiModel, free: "Gemini Flash", pro: "GPT-4o Mini" },
+    { name: p.featureTokens, free: "7,000", pro: "1,500,000" },
+    { name: p.featureSpeed, free: p.speedStandard, pro: p.speedFast },
+    { name: p.featureAll, free: "✓", pro: "✓" },
+  ];
 
   const handleSubscribe = async () => {
     if (!session?.user) {
@@ -50,10 +55,10 @@ export default function PricingPage() {
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 pt-28 pb-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Choose Your Plan
+            {p.title}
           </h1>
           <p className="text-slate-400 text-lg max-w-xl mx-auto">
-            Start learning for free. Upgrade to Pro for faster AI, more plans, and unlimited day access.
+            {p.subtitle}
           </p>
         </div>
 
@@ -61,12 +66,12 @@ export default function PricingPage() {
           {/* Free Plan */}
           <div className="glass-card p-8 rounded-2xl border border-slate-700/50">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-white mb-1">Free</h2>
+              <h2 className="text-xl font-bold text-white mb-1">{p.freePlan}</h2>
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-bold text-white">$0</span>
-                <span className="text-slate-400">/month</span>
+                <span className="text-slate-400">{p.perMonth}</span>
               </div>
-              <p className="text-sm text-slate-400 mt-2">Get started with AI-powered learning</p>
+              <p className="text-sm text-slate-400 mt-2">{p.freeDesc}</p>
             </div>
             <ul className="space-y-3 mb-8">
               {features.map((f) => (
@@ -78,7 +83,7 @@ export default function PricingPage() {
             </ul>
             <Link href={session ? "/plans" : "/auth/register"}>
               <button className="w-full py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors font-medium">
-                {session ? "Current Plan" : "Get Started"}
+                {session ? p.currentPlan : p.getStarted}
               </button>
             </Link>
           </div>
@@ -86,15 +91,15 @@ export default function PricingPage() {
           {/* Pro Plan */}
           <div className="glass-card p-8 rounded-2xl border-2 border-amber-500/50 relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-amber-500 text-black text-xs font-bold px-4 py-1 rounded-bl-lg">
-              RECOMMENDED
+              {p.recommended}
             </div>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-amber-400 mb-1">Pro</h2>
+              <h2 className="text-xl font-bold text-amber-400 mb-1">{p.proPlan}</h2>
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-bold text-white">$12</span>
-                <span className="text-slate-400">/month</span>
+                <span className="text-slate-400">{p.perMonth}</span>
               </div>
-              <p className="text-sm text-slate-400 mt-2">Unlock your full learning potential</p>
+              <p className="text-sm text-slate-400 mt-2">{p.proDesc}</p>
             </div>
             <ul className="space-y-3 mb-8">
               {features.map((f) => (
@@ -112,17 +117,17 @@ export default function PricingPage() {
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Processing...
+                  {p.processing}
                 </div>
               ) : (
-                "Upgrade to Pro"
+                p.upgradeToPro
               )}
             </button>
           </div>
         </div>
 
         <p className="text-xs text-slate-500 mt-8 text-center max-w-md">
-          Payments are processed securely via Stripe. You can cancel your subscription at any time from your profile settings.
+          {p.disclaimer}
         </p>
       </div>
     </main>

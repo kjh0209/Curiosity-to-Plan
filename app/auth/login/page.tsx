@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { getDictionary, Language, getInitialLanguage } from "@/lib/i18n";
 
 function GoogleIcon() {
   return (
@@ -25,6 +26,10 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lang] = useState<Language>(() => getInitialLanguage());
+
+  const dict = getDictionary(lang);
+  const a = dict.auth;
 
   const registered = searchParams.get("registered");
   const verified = searchParams.get("verified");
@@ -44,9 +49,9 @@ function LoginForm() {
 
       if (result?.error) {
         if (result.error.includes("EMAIL_NOT_VERIFIED")) {
-          setError("Please verify your email before signing in. Check your inbox.");
+          setError(a.emailNotVerifiedError);
         } else {
-          setError("Invalid email or password");
+          setError(a.invalidCredentials);
         }
         return;
       }
@@ -54,7 +59,7 @@ function LoginForm() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(a.errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -69,9 +74,9 @@ function LoginForm() {
     <div className="w-full max-w-md">
       <div className="glass-card p-8 md:p-10 rounded-2xl border border-slate-700/50 shadow-2xl shadow-sky-900/10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">{a.loginTitle}</h1>
           <p className="text-slate-400">
-            Sign in to continue your learning journey
+            {a.loginSubtitle}
           </p>
         </div>
 
@@ -81,7 +86,7 @@ function LoginForm() {
             <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Account created! Please check your email to verify your account.
+            {a.emailVerifyRequired}
           </div>
         )}
 
@@ -90,7 +95,7 @@ function LoginForm() {
             <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Email verified successfully! You can now sign in.
+            {a.emailVerifiedSuccess}
           </div>
         )}
 
@@ -99,7 +104,7 @@ function LoginForm() {
             <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Verification link is invalid or expired. Please request a new one.
+            {a.invalidToken}
           </div>
         )}
 
@@ -115,19 +120,19 @@ function LoginForm() {
           ) : (
             <GoogleIcon />
           )}
-          Continue with Google
+          {a.continueWithGoogle}
         </button>
 
         {/* Divider */}
         <div className="my-6 flex items-center gap-4">
           <div className="flex-1 h-px bg-slate-700/50"></div>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">{a.or}</span>
           <div className="flex-1 h-px bg-slate-700/50"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-2 text-slate-300">Email</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">{a.emailLabel}</label>
             <input
               type="email"
               value={email}
@@ -141,12 +146,12 @@ function LoginForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-slate-300">Password</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">{a.passwordLabel}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder={a.passwordPlaceholder}
               required
               disabled={loading}
               autoComplete="current-password"
@@ -171,24 +176,24 @@ function LoginForm() {
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Signing in...
+                {a.signingIn}
               </div>
             ) : (
-              "Sign in"
+              a.signIn
             )}
           </button>
         </form>
 
         <div className="my-6 flex items-center gap-4">
           <div className="flex-1 h-px bg-slate-700/50"></div>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">{a.or}</span>
           <div className="flex-1 h-px bg-slate-700/50"></div>
         </div>
 
         <p className="text-center text-sm text-slate-400">
-          Don&apos;t have an account?{" "}
+          {a.noAccount}{" "}
           <Link href="/auth/register" className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
-            Create one
+            {a.createOne}
           </Link>
         </p>
       </div>
@@ -197,6 +202,11 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const [lang] = useState<Language>(() => getInitialLanguage());
+
+  const dict = getDictionary(lang);
+  const a = dict.auth;
+
   return (
     <main className="page-bg-gradient min-h-screen flex flex-col">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -212,7 +222,7 @@ export default function LoginPage() {
         <Suspense fallback={
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-slate-400">{dict.common.loading}</p>
           </div>
         }>
           <LoginForm />
@@ -225,19 +235,19 @@ export default function LoginPage() {
             <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Personalized Plans
+            {a.personalizedPlans}
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
             </svg>
-            Progress Tracking
+            {a.progressTracking}
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Free to Start
+            {a.freeToStart}
           </div>
         </div>
       </footer>

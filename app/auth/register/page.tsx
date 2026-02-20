@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { getDictionary, Language, getInitialLanguage } from "@/lib/i18n";
 
 function GoogleIcon() {
   return (
@@ -27,18 +28,22 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [lang] = useState<Language>(() => getInitialLanguage());
+
+  const dict = getDictionary(lang);
+  const a = dict.auth;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(a.passwordsMismatch);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError(a.passwordTooShort);
       return;
     }
 
@@ -92,17 +97,17 @@ export default function RegisterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Check your email</h2>
+              <h2 className="text-2xl font-bold text-white mb-3">{a.checkEmail}</h2>
               <p className="text-slate-400 mb-6">
-                We sent a verification link to <span className="text-white font-medium">{email}</span>.
-                Click the link in the email to verify your account.
+                {a.verificationSentTo} <span className="text-white font-medium">{email}</span>.
+                {" "}{a.clickLinkToVerify}
               </p>
               <p className="text-xs text-slate-500 mb-6">
-                The link expires in 24 hours. Check your spam folder if you don&apos;t see it.
+                {a.linkExpires}
               </p>
               <Link href="/auth/login?registered=true">
                 <button className="btn btn-primary w-full py-3">
-                  Go to Sign In
+                  {a.goToSignIn}
                 </button>
               </Link>
             </div>
@@ -127,9 +132,9 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="glass-card p-8 md:p-10 rounded-2xl border border-slate-700/50 shadow-2xl shadow-purple-900/10">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Create your account</h1>
+              <h1 className="text-3xl font-bold text-white mb-2">{a.registerTitle}</h1>
               <p className="text-slate-400">
-                Start your personalized learning journey
+                {a.registerSubtitle}
               </p>
             </div>
 
@@ -145,24 +150,24 @@ export default function RegisterPage() {
               ) : (
                 <GoogleIcon />
               )}
-              Continue with Google
+              {a.continueWithGoogle}
             </button>
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 h-px bg-slate-700/50"></div>
-              <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">{a.or}</span>
               <div className="flex-1 h-px bg-slate-700/50"></div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Name</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">{a.nameLabel}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder={a.namePlaceholder}
                   required
                   disabled={loading}
                   autoComplete="name"
@@ -171,7 +176,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Email</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">{a.emailLabel}</label>
                 <input
                   type="email"
                   value={email}
@@ -185,12 +190,12 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Password</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">{a.passwordLabel}</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder={a.passwordPlaceholderRegister}
                   required
                   disabled={loading}
                   autoComplete="new-password"
@@ -199,12 +204,12 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Confirm password</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">{a.confirmPasswordLabel}</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
+                  placeholder={a.confirmPasswordPlaceholder}
                   required
                   disabled={loading}
                   autoComplete="new-password"
@@ -229,24 +234,24 @@ export default function RegisterPage() {
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating account...
+                    {a.creatingAccount}
                   </div>
                 ) : (
-                  "Create account"
+                  a.createAccount
                 )}
               </button>
             </form>
 
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 h-px bg-slate-700/50"></div>
-              <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">{a.or}</span>
               <div className="flex-1 h-px bg-slate-700/50"></div>
             </div>
 
             <p className="text-center text-sm text-slate-400">
-              Already have an account?{" "}
+              {a.alreadyAccount}{" "}
               <Link href="/auth/login" className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
-                Sign in
+                {a.signIn}
               </Link>
             </p>
           </div>

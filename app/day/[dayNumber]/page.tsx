@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 interface QuizQuestion {
   q: string;
@@ -78,7 +78,7 @@ export default function DayPage() {
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
 
   // Localization state - Default to 'ko' as per request, but will fetch profile
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
   const dict = getDictionary(language);
 
   // Missing State Variables
@@ -109,6 +109,7 @@ export default function DayPage() {
         const profileRes = await fetch(`/api/profile?userId=${userId}`);
         const profileData = await profileRes.json();
         const userLang = (profileData.profile?.language || "en") as Language;
+        saveLanguage(userLang);
         setLanguage(userLang);
 
         // 2. Fetch Plan Data

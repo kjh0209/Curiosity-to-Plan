@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { getDictionary, Language } from "@/lib/i18n";
+import { getDictionary, Language, getInitialLanguage, saveLanguage } from "@/lib/i18n";
 
 interface PlanSummary {
   id: string;
@@ -21,7 +21,7 @@ export default function PlansPage() {
   const { data: session, status } = useSession();
   const [plans, setPlans] = useState<PlanSummary[]>([]);
   const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({});
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
@@ -48,7 +48,9 @@ export default function PlansPage() {
         const data = await response.json();
         setPlans(data.plans);
         if (data.language) {
-          setLanguage(data.language as Language);
+          const lang = data.language as Language;
+          saveLanguage(lang);
+          setLanguage(lang);
         }
       } catch (err) {
         setError(String(err));
