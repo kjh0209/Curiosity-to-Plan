@@ -21,17 +21,25 @@ export default function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Fetch subscription tier
+    // Fetch subscription tier (cached in sessionStorage to avoid per-page API calls)
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             const userId = (session.user as any).id;
             if (!userId) return;
+
+            const cacheKey = `isPro_${userId}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached !== null) {
+                setIsPro(cached === "true");
+                return;
+            }
+
             fetch(`/api/profile?userId=${userId}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.profile?.subscriptionTier === "pro") {
-                        setIsPro(true);
-                    }
+                    const pro = data.profile?.subscriptionTier === "pro";
+                    setIsPro(pro);
+                    sessionStorage.setItem(cacheKey, pro ? "true" : "false");
                 })
                 .catch(() => {});
         }

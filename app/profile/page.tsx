@@ -529,7 +529,7 @@ export default function ProfilePage() {
                       </div>
                       <p className="text-xs text-slate-500">
                         {profile.subscriptionTier === "pro"
-                          ? "GPT-4o Mini + 1.5M tokens/mo"
+                          ? "GPT-4o Mini + 3M tokens/mo"
                           : "Gemini Flash + 7K tokens/mo"}
                       </p>
                     </div>
@@ -672,7 +672,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    {profile.subscriptionTier === "pro" ? "Pro: 1.5M tokens/month" : "Free: 7K tokens/month"}
+                    {profile.subscriptionTier === "pro" ? "Pro: 3M tokens/month" : "Free: 7K tokens/month"}
                   </p>
                 </div>
 

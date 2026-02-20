@@ -165,19 +165,39 @@ Return ONLY valid JSON:
       { model: "gpt-4o-mini", dayNumber, difficulty, language: userLanguage }
     );
 
-    // Fetch resources
+    // Fetch resources - all in parallel for speed
+    const maxVideoMinutes = Math.max(5, Math.floor((user.minutesPerDay || 20) * 0.6));
+    const wikiLang = userLanguage === "en" ? "en" : userLanguage;
+    const wikiTerm = result.wikipediaSearchTerm || result.searchTerms[0] || user.interest;
+    const wikiQuery = wikiTerm.replace(/(tutorial|guide|course|101|lesson|learn)/gi, "").trim();
+    const articleTerm = result.searchTerms[0] || user.interest;
+
+    // Run all external fetches concurrently
+    const [ytResults, wikiPage, mediumArticle] = await Promise.all([
+      // YouTube: all search terms in parallel
+      Promise.all(
+        result.searchTerms.slice(0, 3).map((term: string) =>
+          searchYouTubeVideos(`${user.interest} ${term}`, userLanguage, resourceSort, 5, maxVideoMinutes)
+        )
+      ),
+      // Wikipedia with language fallback
+      getBestWikiPage(wikiQuery, wikiLang).then(page =>
+        page || (wikiLang !== "en" ? getBestWikiPage(wikiQuery, "en") : null)
+      ),
+      // Medium article
+      getBestMediumArticle(articleTerm),
+    ]);
+
+    // Dev.to fallback (only if Medium failed and it's a tech topic)
+    let bestArticle = mediumArticle;
+    if (!bestArticle && result.isTechTopic === true) {
+      bestArticle = await getBestTechArticle(`${user.interest} ${articleTerm}`);
+    }
+
     const resources: any[] = [];
 
-    // Calculate max video duration: allocate ~60% of daily time for videos, split across searches
-    // For 20 min/day: max 12 min per video, for 30 min/day: max 18 min per video
-    const maxVideoMinutes = Math.max(5, Math.floor((user.minutesPerDay || 20) * 0.6));
-
-    // 1. YouTube
-    for (const term of result.searchTerms.slice(0, 3)) {
-      const query = `${user.interest} ${term}`;
-      // Request more results to account for filtering
-      const ytResult = await searchYouTubeVideos(query, userLanguage, resourceSort, 5, maxVideoMinutes);
-
+    // 1. YouTube results
+    for (const ytResult of ytResults) {
       if (ytResult.videos.length > 0) {
         const video = ytResult.videos[0];
         resources.push({
@@ -192,37 +212,17 @@ Return ONLY valid JSON:
       }
     }
 
-    // 2. Wikipedia (Smart)
-    const wikiLang = userLanguage === "en" ? "en" : userLanguage;
-    const wikiTerm = result.wikipediaSearchTerm || result.searchTerms[0] || user.interest;
-    const wikiQuery = wikiTerm.replace(/(tutorial|guide|course|101|lesson|learn)/gi, "").trim();
-
-    let wikiPage = await getBestWikiPage(wikiQuery, wikiLang);
-    // If local wiki failed, try English wiki as fallback
-    if (!wikiPage && wikiLang !== "en") {
-      wikiPage = await getBestWikiPage(wikiQuery, "en");
-    }
-
+    // 2. Wikipedia
     if (wikiPage) {
       resources.push({
         type: "wikipedia",
         title: wikiPage.title,
         url: wikiPage.url,
-        description: wikiPage.extract
-          ? `${wikiPage.extract.slice(0, 100)}...`
-          : `Encyclopedia entry`,
+        description: wikiPage.extract ? `${wikiPage.extract.slice(0, 100)}...` : "Encyclopedia entry",
       });
     }
 
-    // 3. Recommended Article (Medium for All, Dev.to ONLY for Tech)
-    const articleTerm = result.searchTerms[0] || user.interest;
-    let bestArticle = await getBestMediumArticle(articleTerm); // Medium RSS works for mostly everything
-
-    // Only try Dev.to IF it is explicitly a Tech Topic
-    if (!bestArticle && result.isTechTopic === true) {
-      bestArticle = await getBestTechArticle(`${user.interest} ${articleTerm}`);
-    }
-
+    // 3. Article
     if (bestArticle) {
       resources.push({
         type: "article",
@@ -231,7 +231,6 @@ Return ONLY valid JSON:
         description: bestArticle.description,
       });
     } else {
-      // Fallback to Medium Search
       resources.push({
         type: "article",
         title: `Explore: ${articleTerm} on Medium`,

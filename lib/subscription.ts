@@ -24,7 +24,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
   pro: {
     maxPlansPerDay: 5,
     maxDaysOpenedPerDay: 3,
-    geminiMonthlyTokenLimit: 1_500_000,
+    geminiMonthlyTokenLimit: 3_000_000,
     useServerOpenAI: true,
     openaiModel: "gpt-4o-mini",
   },

@@ -87,6 +87,9 @@ model Plan {
   createdAt       DateTime   @default(now())
   days            DayPlan[]
   quizAttempts    QuizAttempt[]
+
+  @@index([userId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model DayPlan {
@@ -132,6 +135,9 @@ model QuizAttempt {
   feedback         String
   difficultySignal String   // TOO_EASY | ON_TRACK | TOO_HARD
   createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([planId, dayNumber])
 }
 
 model TraceLog {
@@ -153,4 +159,7 @@ model UserFeedback {
   resourceRating   Int      // 1-5: Resource usefulness
   textFeedback     String?  // Free text feedback
   createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt(sort: Desc)])
 }
