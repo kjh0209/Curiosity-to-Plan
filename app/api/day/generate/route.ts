@@ -62,11 +62,15 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const [user, plan] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      planId ? prisma.plan.findUnique({ where: { id: planId }, select: { planTitle: true } }) : Promise.resolve(null),
+    ]);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const planTitle = plan?.planTitle || "";
     const userLanguage = user.language || "en";
     const resourceSort = (user.resourceSort || "relevance") as "relevance" | "viewCount" | "rating";
     const languageName = languageNames[userLanguage] || "English";
@@ -103,16 +107,28 @@ Ensure this new content addresses these concerns (e.g., if previous was too hard
       "generate_day_mission",
       { dayNumber, missionTitle, focus, difficulty, language: userLanguage, ragContext },
       async () => {
-        const prompt = `Create day ${dayNumber} learning content for "${user.interest}" in ${languageName}.
+        const prompt = `Create day ${dayNumber} learning content in ${languageName}.
 IMPORTANT: ALL CONTENT MUST BE IN ${languageName} (except for search terms if English finds better results).
 ${ragContext}
 
-Mission: "${missionTitle}"
+═══════════════════════════════════════════
+FULL CONTEXT — READ CAREFULLY BEFORE GENERATING
+═══════════════════════════════════════════
+Subject/Interest: "${user.interest}"
+Overall Learning Plan Title: "${planTitle}"
+Today's Mission: "${missionTitle}"
 Focus: "${focus}"
 Goal: "${user.goal}"
 Time: ${user.minutesPerDay} minutes
 Difficulty: ${difficulty}/3
-Language: ${languageName}
+
+⚠️ ANTI-HALLUCINATION RULE:
+Every piece of content MUST be strictly about "${user.interest}" as defined by the plan "${planTitle}".
+If any term in the mission title is ambiguous (e.g. "C", "D", "code", "type"), interpret it ONLY within the domain of "${user.interest}".
+NEVER interpret terms from a different domain. For example:
+  - If interest is "Guitar" and mission says "C to D", this means guitar CHORDS C and D — NOT programming languages.
+  - If interest is "Python programming" and mission says "type", this means Python type hints — NOT typing speed.
+═══════════════════════════════════════════
 
 Create:
 1. ${Math.max(3, Math.min(8, Math.floor(user.minutesPerDay / 5)))} concrete learning steps (in ${languageName})
@@ -122,12 +138,14 @@ Create:
    - For short answer: Answer must be a specific term (1-3 words).
    - For short answer: If the answer is a CONCEPT that can be expressed in multiple languages, include an "alternativeAnswers" array with ALL common equivalent terms across languages. Always include the English equivalent, and add equivalents in other languages the concept is commonly known by (e.g., answer "인터페이스" → alternativeAnswers: ["interface"], answer "インターフェース" → alternativeAnswers: ["interface", "인터페이스"], answer "interfaz" → alternativeAnswers: ["interface"]). Do NOT include alternatives for specific COMMANDS, KEYWORDS, or CODE SYNTAX that must be typed exactly (e.g., "type", "const", "npm install").
 3. 3-4 search keywords for YouTube/Articles.
-   - For Non-Tech topics (e.g. Guitar), use simple English or Korean terms.
+   - Keywords MUST always include "${user.interest}" as context to avoid ambiguity (e.g. if interest is "Guitar" and lesson is "C chord", write "guitar C chord" not just "C chord").
+   - For Non-Tech topics (e.g. Guitar, Music, Art), use simple English or Korean terms.
 4. Classify topic:
    - "isTechTopic": true if it is programming/IT/engineering. false for music, art, sports, etc.
-   - "wikipediaSearchTerm": The single most relevant Wikipedia page title for TODAY's lesson.
+   - "wikipediaSearchTerm": The single most relevant Wikipedia page title for TODAY's lesson (must be in the domain of "${user.interest}").
 5. "recommendedBook": Recommend ONE specific book that is best for TODAY's topic.
    - title, author, reason (why it fits today's mission, 1 sentence).
+   - The book MUST be about "${user.interest}", NOT a different domain.
 
 Return ONLY valid JSON:
 {
@@ -177,7 +195,7 @@ Return ONLY valid JSON:
       // YouTube: all search terms in parallel
       Promise.all(
         result.searchTerms.slice(0, 3).map((term: string) =>
-          searchYouTubeVideos(`${user.interest} ${term}`, userLanguage, resourceSort, 5, maxVideoMinutes)
+          searchYouTubeVideos(term, userLanguage, resourceSort, 5, maxVideoMinutes)
         )
       ),
       // Wikipedia with language fallback
