@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { getDictionary, Language, getInitialLanguage } from "@/lib/i18n";
 
