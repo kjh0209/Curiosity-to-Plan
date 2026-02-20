@@ -384,9 +384,9 @@ export default function NewPlanPage() {
                                             {Math.round(progress)}%
                                         </span>
                                     </div>
-                                    <div className="progress-track bg-slate-800 h-2">
+                                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                                         <div
-                                            className="progress-fill bg-gradient-to-r from-sky-500 to-purple-500"
+                                            className="h-2 rounded-full bg-gradient-to-r from-sky-500 to-purple-500 transition-all duration-500 ease-out"
                                             style={{ width: `${progress}%` }}
                                         />
                                     </div>

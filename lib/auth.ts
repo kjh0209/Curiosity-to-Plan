@@ -4,6 +4,14 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 
+// Internal test account - bypasses registration and email verification
+const TEST_ACCOUNT = {
+    id: "__TEST_PRO_ACCOUNT__",
+    email: "protest@skillloop.internal",
+    password: "SL#9xKv2Z!Pr0Test",
+    name: "Pro Tester",
+};
+
 export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({
@@ -20,6 +28,18 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Invalid credentials");
+                }
+
+                // Internal test account bypass
+                if (
+                    credentials.email === TEST_ACCOUNT.email &&
+                    credentials.password === TEST_ACCOUNT.password
+                ) {
+                    return {
+                        id: TEST_ACCOUNT.id,
+                        email: TEST_ACCOUNT.email,
+                        name: TEST_ACCOUNT.name,
+                    };
                 }
 
                 const user = await prisma.user.findUnique({
@@ -96,6 +116,12 @@ export const authOptions: NextAuthOptions = {
         },
         async jwt({ token, user, account }) {
             if (user) {
+                // Internal test account bypass
+                if (user.email === TEST_ACCOUNT.email) {
+                    token.id = TEST_ACCOUNT.id;
+                    return token;
+                }
+
                 if (account?.provider === "google") {
                     // Look up the DB user to get the cuid-based ID
                     const dbUser = await prisma.user.findUnique({

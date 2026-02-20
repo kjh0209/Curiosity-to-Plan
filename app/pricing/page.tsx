@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
-import Logo from "@/components/Logo";
 
 const features = [
   { name: "Plans per day", free: "3", pro: "5" },
@@ -48,11 +47,7 @@ export default function PricingPage() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <header className="relative z-10 p-4 md:p-6">
-        <Logo size="md" />
-      </header>
-
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 py-12">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 pt-28 pb-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Choose Your Plan
