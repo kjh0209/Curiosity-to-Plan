@@ -20,6 +20,8 @@ export default function NewPlanPage() {
     const [progress, setProgress] = useState(0);
     const [progressMessage, setProgressMessage] = useState("");
     const [error, setError] = useState("");
+    const [limitReached, setLimitReached] = useState(false);
+    const [limitInfo, setLimitInfo] = useState<{ tier: string; remaining: number; total: number } | null>(null);
     // Localization
     const dict = getDictionary(language as Language);
 
@@ -29,7 +31,7 @@ export default function NewPlanPage() {
         }
     }, [status, router]);
 
-    // Fetch user language preference
+    // Fetch user language preference and plan limits
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             const userId = (session.user as any).id;
@@ -39,6 +41,16 @@ export default function NewPlanPage() {
                     if (data.profile?.language) {
                         setLanguage(data.profile.language);
                     }
+                    // Calculate remaining plans
+                    const tier = data.profile?.subscriptionTier || "free";
+                    const total = tier === "pro" ? 5 : 3;
+                    const used = data.profile?.plansCreatedToday || 0;
+                    // Check if daily reset is needed
+                    const lastReset = data.profile?.lastDailyReset ? new Date(data.profile.lastDailyReset) : new Date();
+                    const now = new Date();
+                    const isNewDay = now.toDateString() !== lastReset.toDateString();
+                    const remaining = isNewDay ? total : Math.max(0, total - used);
+                    setLimitInfo({ tier, remaining, total });
                 })
                 .catch(err => console.error("Failed to load user language", err));
         }
@@ -106,19 +118,29 @@ export default function NewPlanPage() {
                 }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const data = await response.json();
+                if (data.limitReached) {
+                    setLimitReached(true);
+                    setLimitInfo({ tier: data.tier, remaining: 0, total: data.total });
+                    const limitMsg = data.tier === "free"
+                        ? (dict.limits?.planLimitReachedUpgrade || "You've reached today's plan limit. Upgrade to Pro for more!")
+                        : (dict.limits?.planLimitReached || "You've reached today's plan limit. Try again tomorrow.");
+                    setError(limitMsg);
+                    setLoading(false);
+                    return;
+                }
                 throw new Error(data.error || "Failed to generate plan");
             }
 
             setProgress(100);
             setProgressMessage("Plan generated successfully!");
 
-            const data = await response.json();
             await new Promise(resolve => setTimeout(resolve, 800));
             router.push("/plan?id=" + data.plan.id);
         } catch (err) {
-            setError(String(err));
+            setError(String(err).replace("Error: ", ""));
             setLoading(false);
         }
     };
@@ -154,6 +176,35 @@ export default function NewPlanPage() {
                         Tell us what you want to learn, and we will build a personalized curriculum just for you.
                     </p>
                 </div>
+
+                {/* Remaining Plans Indicator */}
+                {limitInfo && (
+                    <div className="max-w-xl mx-auto mb-6 animate-fade-in">
+                        <div className={`flex items-center justify-between p-4 rounded-xl border ${
+                            limitInfo.remaining === 0
+                                ? "bg-red-500/10 border-red-500/20"
+                                : limitInfo.remaining <= 1
+                                    ? "bg-amber-500/10 border-amber-500/20"
+                                    : "bg-slate-800/50 border-slate-700/50"
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                <svg className={`w-5 h-5 ${limitInfo.remaining === 0 ? "text-red-400" : limitInfo.remaining <= 1 ? "text-amber-400" : "text-slate-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <span className="text-sm text-slate-300">
+                                    {(dict.limits?.remainingPlans || "Plans remaining today: {remaining}/{total}")
+                                        .replace("{remaining}", String(limitInfo.remaining))
+                                        .replace("{total}", String(limitInfo.total))}
+                                </span>
+                            </div>
+                            {limitInfo.tier === "free" && (
+                                <a href="/pricing" className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
+                                    {dict.limits?.upgradeButton || "Upgrade to Pro"}
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Main Content */}
                 <div className="max-w-xl mx-auto relative z-10">
@@ -344,11 +395,18 @@ export default function NewPlanPage() {
 
                             {/* Error */}
                             {error && (
-                                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in flex items-center gap-2">
-                                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    {error}
+                                <div className={`p-4 rounded-xl text-sm animate-fade-in ${limitReached ? "bg-amber-500/10 border border-amber-500/20" : "bg-red-500/10 border border-red-500/20"}`}>
+                                    <div className={`flex items-center gap-2 ${limitReached ? "text-amber-400" : "text-red-400"}`}>
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {error}
+                                    </div>
+                                    {limitReached && limitInfo?.tier === "free" && (
+                                        <a href="/pricing" className="mt-3 block w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black text-center font-bold text-sm hover:from-amber-400 hover:to-orange-400 transition-all">
+                                            {dict.limits?.upgradeButton || "Upgrade to Pro"}
+                                        </a>
+                                    )}
                                 </div>
                             )}
 

@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
+import { sendVerificationEmail } from "@/lib/email";
+
 export async function POST(req: NextRequest) {
     try {
-        const {
-            email,
-            password,
-            name,
-            openaiApiKey,
-            openaiModel,
-            openaiDailyQuota
-        } = await req.json();
+        const { email, password, name } = await req.json();
 
         if (!email || !password) {
             return NextResponse.json(
@@ -41,54 +37,52 @@ export async function POST(req: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Generate a unique ID for the user first (for Gemini key provisioning)
         const userId = generateCuid();
 
-        // Prepare user data
-        const userData: any = {
-            id: userId,
-            email,
-            password: hashedPassword,
-            name: name || email.split("@")[0],
-        };
+        // Generate verification token
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
-        // Add OpenAI settings if provided
-        if (openaiApiKey) {
-            // User provided their own OpenAI key
-            userData.openaiApiKey = openaiApiKey;
-            if (openaiModel) {
-                userData.openaiModel = openaiModel;
-            }
-            if (openaiDailyQuota) {
-                userData.openaiDailyQuota = parseInt(openaiDailyQuota, 10);
-            }
-        }
-        // Gemini key pool handles distribution automatically — no provisioning needed
-
-        // Create user
+        // Create user with verification pending
         const user = await prisma.user.create({
-            data: userData,
+            data: {
+                id: userId,
+                email,
+                password: hashedPassword,
+                name: name || email.split("@")[0],
+                authProvider: "credentials",
+                emailVerified: false,
+                emailVerificationToken: verificationToken,
+                emailVerificationExpires: verificationExpires,
+            },
         });
+
+        // Send verification email (non-blocking)
+        try {
+            await sendVerificationEmail(user.email, verificationToken);
+        } catch (err) {
+            console.error("Failed to send verification email:", err);
+        }
 
         return NextResponse.json({
             user: {
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                hasOpenAiKey: !!openaiApiKey,
-                hasGeminiKey: !!user.geminiApiKey,
+                emailVerified: false,
             },
+            message: "Account created. Please check your email to verify your account.",
+            requiresVerification: true,
         });
     } catch (error) {
         console.error("Registration error:", error);
         return NextResponse.json(
-            { error: String(error) },
+            { error: "Registration failed. Please try again." },
             { status: 500 }
         );
     }
 }
 
-// Simple CUID generator (similar to Prisma's)
 function generateCuid(): string {
     const timestamp = Date.now().toString(36);
     const randomPart = Math.random().toString(36).substring(2, 10);

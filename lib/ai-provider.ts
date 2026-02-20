@@ -25,6 +25,8 @@ interface User {
     geminiTokenUsagePeriod: number;
     geminiPeriodStart: Date;
     lastUsageReset: Date;
+    subscriptionTier: string;
+    subscriptionStatus: string;
 }
 
 interface AIGenerationResult {
@@ -231,6 +233,8 @@ export async function generateWithAI(
             geminiTokenUsagePeriod: true,
             geminiPeriodStart: true,
             lastUsageReset: true,
+            subscriptionTier: true,
+            subscriptionStatus: true,
         },
     });
 
@@ -240,7 +244,29 @@ export async function generateWithAI(
     let user = rawUser as unknown as User;
     user = await checkPeriodReset(user);
 
-    // Try OpenAI first
+    // Pro users: use server-side OpenAI API key
+    const isPro = user.subscriptionTier === "pro" && user.subscriptionStatus === "active";
+    if (isPro && process.env.OPENAI_API_KEY) {
+        try {
+            const { text, tokens } = await generateWithOpenAI(
+                process.env.OPENAI_API_KEY,
+                "gpt-4o-mini",
+                prompt,
+                maxTokens
+            );
+            await incrementUsage(userId, "openai", tokens);
+            return {
+                text,
+                provider: "openai",
+                model: "gpt-4o-mini",
+                tokens,
+            };
+        } catch (error) {
+            console.error("Server OpenAI failed for pro user, falling back to Gemini:", error);
+        }
+    }
+
+    // Try user's own OpenAI key
     if (user.openaiApiKey && user.openaiTokenUsagePeriod < user.openaiMonthlyTokenLimit) {
         try {
             const { text, tokens } = await generateWithOpenAI(

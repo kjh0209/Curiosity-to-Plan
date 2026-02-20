@@ -32,7 +32,16 @@ export async function GET(req: NextRequest) {
                 streak: true,
                 freezeCount: true,
                 lastCompletedDate: true,
-                // API settings (don't expose the actual keys)
+                // Subscription
+                subscriptionTier: true,
+                subscriptionStatus: true,
+                stripeCustomerId: true,
+                subscriptionEnd: true,
+                authProvider: true,
+                // Daily counters
+                plansCreatedToday: true,
+                daysOpenedToday: true,
+                lastDailyReset: true,
                 // API settings (don't expose the actual keys)
                 openaiApiKey: true,
                 openaiModel: true,

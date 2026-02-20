@@ -14,7 +14,7 @@ datasource db {
 model User {
   id                String     @id @default(cuid())
   email             String     @unique
-  password          String
+  password          String?   // null for Google OAuth users
   name              String?
   interest          String     @default("")
   goal              String     @default("")
@@ -42,13 +42,33 @@ model User {
   // Gemini API
   geminiApiKey      String?    
   geminiModel       String     @default("gemini-2.0-flash")
-  geminiMonthlyTokenLimit Int  @default(5000000) // Higher limit for free tier
+  geminiMonthlyTokenLimit Int  @default(7000) // Free tier: heavily restricted
   geminiTokenUsagePeriod  Int  @default(0)
   geminiPeriodStart       DateTime @default(now())
   geminiUsageToday        Int  @default(0)
   
-  lastUsageReset    DateTime   @default(now()) 
-  
+  lastUsageReset    DateTime   @default(now())
+
+  // Subscription
+  subscriptionTier      String    @default("free")      // "free" | "pro"
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?
+  subscriptionStatus    String    @default("inactive")   // "active" | "inactive" | "past_due" | "canceled"
+  subscriptionEnd       DateTime?
+
+  // Email Verification
+  emailVerified             Boolean   @default(false)
+  emailVerificationToken    String?
+  emailVerificationExpires  DateTime?
+
+  // Auth Provider
+  authProvider          String    @default("credentials") // "credentials" | "google"
+
+  // Daily Usage Counters
+  plansCreatedToday     Int       @default(0)
+  daysOpenedToday       Int       @default(0)
+  lastDailyReset        DateTime  @default(now())
+
   createdAt         DateTime   @default(now())
   plans             Plan[]
   quizAttempts      QuizAttempt[]

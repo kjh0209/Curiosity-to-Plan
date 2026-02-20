@@ -181,6 +181,20 @@ export const dictionaries = {
             writing: "Writing your lesson...",
             backToMission: "Back to Mission",
             minRead: "min read",
+        },
+        limits: {
+            planLimitReached: "You've reached today's plan creation limit. Please try again tomorrow.",
+            planLimitReachedUpgrade: "You've reached today's plan limit. Upgrade to Pro to create up to 5 plans per day!",
+            dayLimitReached: "You've reached today's learning limit. Please try again tomorrow.",
+            dayLimitReachedUpgrade: "You've reached today's learning limit. Upgrade to Pro to open up to 3 days per day!",
+            tokenLimitReached: "You've reached this month's AI usage limit.",
+            tokenLimitReachedUpgrade: "You've reached this month's AI usage limit. Upgrade to Pro for more!",
+            upgradeButton: "Upgrade to Pro",
+            tryTomorrow: "Try again tomorrow",
+            aiCapacity: "AI service is temporarily busy. Please try again in a moment.",
+            emailNotVerified: "Please verify your email. Check your inbox.",
+            remainingPlans: "Plans remaining today: {remaining}/{total}",
+            remainingDays: "Days remaining today: {remaining}/{total}",
         }
     },
     ko: {
@@ -363,6 +377,20 @@ export const dictionaries = {
             writing: "AI가 강의를 작성하고 있습니다...",
             backToMission: "미션으로 돌아가기",
             minRead: "분 분량",
+        },
+        limits: {
+            planLimitReached: "오늘의 플랜 생성 한도에 도달했습니다. 내일 다시 시도해주세요.",
+            planLimitReachedUpgrade: "오늘의 플랜 생성 한도에 도달했습니다. Pro로 업그레이드하면 하루 5개까지 만들 수 있어요!",
+            dayLimitReached: "오늘의 학습 한도에 도달했습니다. 내일 다시 시도해주세요.",
+            dayLimitReachedUpgrade: "오늘의 학습 한도에 도달했습니다. Pro로 업그레이드하면 하루 3개까지 열 수 있어요!",
+            tokenLimitReached: "이번 달 AI 사용량이 한도에 도달했습니다.",
+            tokenLimitReachedUpgrade: "이번 달 AI 사용량이 한도에 도달했습니다. Pro로 업그레이드하여 더 많이 사용해보세요!",
+            upgradeButton: "Pro로 업그레이드",
+            tryTomorrow: "내일 다시 시도해주세요",
+            aiCapacity: "AI 서비스가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.",
+            emailNotVerified: "이메일 인증을 완료해주세요. 받은 편지함을 확인해주세요.",
+            remainingPlans: "오늘 남은 플랜: {remaining}/{total}",
+            remainingDays: "오늘 남은 학습: {remaining}/{total}",
         }
     },
     ja: {
@@ -545,6 +573,20 @@ export const dictionaries = {
             writing: "AIがレッスンを執筆中...",
             backToMission: "ミッションに戻る",
             minRead: "分で読めます",
+        },
+        limits: {
+            planLimitReached: "本日のプラン作成上限に達しました。明日もう一度お試しください。",
+            planLimitReachedUpgrade: "本日のプラン作成上限に達しました。Proにアップグレードすると1日5個まで作成できます！",
+            dayLimitReached: "本日の学習上限に達しました。明日もう一度お試しください。",
+            dayLimitReachedUpgrade: "本日の学習上限に達しました。Proにアップグレードすると1日3つまで開けます！",
+            tokenLimitReached: "今月のAI使用量が上限に達しました。",
+            tokenLimitReachedUpgrade: "今月のAI使用量が上限に達しました。Proにアップグレードしてもっと使いましょう！",
+            upgradeButton: "Proにアップグレード",
+            tryTomorrow: "明日もう一度お試しください",
+            aiCapacity: "AIサービスが一時的に混雑しています。しばらくしてからお試しください。",
+            emailNotVerified: "メールアドレスを確認してください。受信トレイをご確認ください。",
+            remainingPlans: "本日の残りプラン: {remaining}/{total}",
+            remainingDays: "本日の残り学習: {remaining}/{total}",
         }
     },
     zh: {
@@ -727,6 +769,20 @@ export const dictionaries = {
             writing: "AI正在撰写您的课程...",
             backToMission: "返回任务",
             minRead: "分钟阅读",
+        },
+        limits: {
+            planLimitReached: "今日的计划创建限额已达到。请明天再试。",
+            planLimitReachedUpgrade: "今日的计划创建限额已达到。升级到Pro每天可创建5个计划！",
+            dayLimitReached: "今日的学习限额已达到。请明天再试。",
+            dayLimitReachedUpgrade: "今日的学习限额已达到。升级到Pro每天可打开3天课程！",
+            tokenLimitReached: "本月AI使用量已达上限。",
+            tokenLimitReachedUpgrade: "本月AI使用量已达上限。升级到Pro获取更多！",
+            upgradeButton: "升级到Pro",
+            tryTomorrow: "请明天再试",
+            aiCapacity: "AI服务暂时繁忙，请稍后再试。",
+            emailNotVerified: "请验证您的邮箱。检查您的收件箱。",
+            remainingPlans: "今日剩余计划: {remaining}/{total}",
+            remainingDays: "今日剩余学习: {remaining}/{total}",
         }
     },
     es: {
@@ -909,6 +965,20 @@ export const dictionaries = {
             writing: "La IA está escribiendo tu lección...",
             backToMission: "Volver a la misión",
             minRead: "min de lectura",
+        },
+        limits: {
+            planLimitReached: "Has alcanzado el límite de creación de planes de hoy. Inténtalo mañana.",
+            planLimitReachedUpgrade: "Has alcanzado el límite de planes de hoy. ¡Actualiza a Pro para crear hasta 5 planes al día!",
+            dayLimitReached: "Has alcanzado el límite de aprendizaje de hoy. Inténtalo mañana.",
+            dayLimitReachedUpgrade: "Has alcanzado el límite de aprendizaje de hoy. ¡Actualiza a Pro para abrir hasta 3 días al día!",
+            tokenLimitReached: "Has alcanzado el límite de uso de IA de este mes.",
+            tokenLimitReachedUpgrade: "Has alcanzado el límite de uso de IA de este mes. ¡Actualiza a Pro para más!",
+            upgradeButton: "Actualizar a Pro",
+            tryTomorrow: "Inténtalo mañana",
+            aiCapacity: "El servicio de IA está temporalmente ocupado. Inténtalo en un momento.",
+            emailNotVerified: "Verifica tu correo electrónico. Revisa tu bandeja de entrada.",
+            remainingPlans: "Planes restantes hoy: {remaining}/{total}",
+            remainingDays: "Días restantes hoy: {remaining}/{total}",
         }
     },
     fr: {
@@ -1091,6 +1161,20 @@ export const dictionaries = {
             writing: "L'IA rédige votre leçon...",
             backToMission: "Retour à la mission",
             minRead: "min de lecture",
+        },
+        limits: {
+            planLimitReached: "Vous avez atteint la limite de création de plans pour aujourd'hui. Réessayez demain.",
+            planLimitReachedUpgrade: "Vous avez atteint la limite de plans pour aujourd'hui. Passez à Pro pour créer jusqu'à 5 plans par jour !",
+            dayLimitReached: "Vous avez atteint la limite d'apprentissage pour aujourd'hui. Réessayez demain.",
+            dayLimitReachedUpgrade: "Vous avez atteint la limite d'apprentissage pour aujourd'hui. Passez à Pro pour ouvrir jusqu'à 3 jours par jour !",
+            tokenLimitReached: "Vous avez atteint la limite d'utilisation de l'IA ce mois-ci.",
+            tokenLimitReachedUpgrade: "Vous avez atteint la limite d'utilisation de l'IA ce mois-ci. Passez à Pro pour plus !",
+            upgradeButton: "Passer à Pro",
+            tryTomorrow: "Réessayez demain",
+            aiCapacity: "Le service IA est temporairement surchargé. Veuillez réessayer dans un instant.",
+            emailNotVerified: "Veuillez vérifier votre email. Consultez votre boîte de réception.",
+            remainingPlans: "Plans restants aujourd'hui : {remaining}/{total}",
+            remainingDays: "Jours restants aujourd'hui : {remaining}/{total}",
         }
     },
     de: {
@@ -1273,6 +1357,20 @@ export const dictionaries = {
             writing: "KI schreibt Ihre Lektion...",
             backToMission: "Zurück zur Mission",
             minRead: "Min. Lesezeit",
+        },
+        limits: {
+            planLimitReached: "Sie haben das heutige Limit für die Planerstellung erreicht. Versuchen Sie es morgen erneut.",
+            planLimitReachedUpgrade: "Sie haben das heutige Plan-Limit erreicht. Upgraden Sie auf Pro, um bis zu 5 Pläne pro Tag zu erstellen!",
+            dayLimitReached: "Sie haben das heutige Lernlimit erreicht. Versuchen Sie es morgen erneut.",
+            dayLimitReachedUpgrade: "Sie haben das heutige Lernlimit erreicht. Upgraden Sie auf Pro, um bis zu 3 Tage pro Tag zu öffnen!",
+            tokenLimitReached: "Sie haben das monatliche KI-Nutzungslimit erreicht.",
+            tokenLimitReachedUpgrade: "Sie haben das monatliche KI-Nutzungslimit erreicht. Upgraden Sie auf Pro für mehr!",
+            upgradeButton: "Auf Pro upgraden",
+            tryTomorrow: "Versuchen Sie es morgen erneut",
+            aiCapacity: "Der KI-Dienst ist vorübergehend ausgelastet. Bitte versuchen Sie es gleich erneut.",
+            emailNotVerified: "Bitte bestätigen Sie Ihre E-Mail. Prüfen Sie Ihren Posteingang.",
+            remainingPlans: "Verbleibende Pläne heute: {remaining}/{total}",
+            remainingDays: "Verbleibendes Lernen heute: {remaining}/{total}",
         }
     }
 };

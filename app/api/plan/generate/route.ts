@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withOpikTrace } from "@/lib/opik";
 import { prisma } from "@/lib/db";
 import { generateWithAI } from "@/lib/ai-provider";
+import { canCreatePlan, incrementPlanCount } from "@/lib/subscription";
 
 // Language mapping for the prompt
 const languageNames: Record<string, string> = {
@@ -154,6 +155,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Check daily plan creation limit
+    const planCheck = await canCreatePlan(userId);
+    if (!planCheck.allowed) {
+      return NextResponse.json({
+        limitReached: true,
+        type: "plan_limit",
+        tier: planCheck.tier,
+        remaining: planCheck.remaining,
+        total: planCheck.total,
+      }, { status: 429 });
+    }
+
     const result = await withOpikTrace(
       "generate_plan",
       { interest, goal, minutesPerDay, totalDays, riskStyle, baselineLevel, language },
@@ -218,6 +231,9 @@ export async function POST(req: NextRequest) {
         days: { orderBy: { dayNumber: "asc" } },
       },
     });
+
+    // Increment daily plan counter
+    await incrementPlanCount(userId);
 
     return NextResponse.json({ plan });
   } catch (error: any) {

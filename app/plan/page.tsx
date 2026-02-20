@@ -276,15 +276,21 @@ function PlanContent() {
           totalDays: rec.totalDays,
           baselineLevel: level,
           language: language,
-          // Inherit style from current user profile/plan? 
-          // Plan generation API updates user profile so checking defaults there is enough.
         })
       });
       const data = await res.json();
+      if (data.limitReached) {
+        const msg = data.tier === "free"
+          ? (dict.limits?.planLimitReachedUpgrade || "Plan limit reached. Upgrade to Pro!")
+          : (dict.limits?.planLimitReached || "Plan limit reached. Try again tomorrow.");
+        setError(msg);
+        setCreatingPlan(false);
+        return;
+      }
       if (data.plan) {
         router.push(`/plan?id=${data.plan.id}`);
       } else {
-        console.error("Failed to create plan", data.error);
+        setError(data.error || "Failed to create plan");
         setCreatingPlan(false);
       }
     } catch (e) {

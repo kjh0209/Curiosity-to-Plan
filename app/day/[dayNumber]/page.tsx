@@ -193,6 +193,14 @@ export default function DayPage() {
 
           if (!genRes.ok) {
             const errData = await genRes.json().catch(() => ({}));
+            if (errData.limitReached) {
+              const limitMsg = errData.tier === "free"
+                ? (dict.limits?.dayLimitReachedUpgrade || "You've reached today's learning limit. Upgrade to Pro for more!")
+                : (dict.limits?.dayLimitReached || "You've reached today's learning limit. Try again tomorrow.");
+              setError(limitMsg);
+              setLoading(false);
+              return;
+            }
             throw new Error(errData.error || "Failed to generate day content");
           }
 
@@ -429,14 +437,29 @@ export default function DayPage() {
   }
 
   if (error || !dayData) {
+    const isLimitError = error?.includes(dict.limits?.dayLimitReached || "__NO_MATCH__") ||
+                         error?.includes(dict.limits?.dayLimitReachedUpgrade || "__NO_MATCH__");
     return (
       <main className="page-bg-gradient min-h-screen flex items-center justify-center p-4">
         <div className="glass-card p-10 max-w-lg text-center animate-scale-in">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isLimitError ? "bg-amber-500/10" : "bg-red-500/10"}`}>
+            {isLimitError ? (
+              <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ) : (
+              <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            )}
           </div>
-          <h1 className="text-2xl font-bold mb-2 text-white">{dict.common.error}</h1>
+          <h1 className="text-2xl font-bold mb-2 text-white">
+            {isLimitError ? (dict.limits?.tryTomorrow || "Daily Limit Reached") : dict.common.error}
+          </h1>
           <p className="text-slate-400 mb-8">{error}</p>
+          {isLimitError && (
+            <Link href="/pricing">
+              <button className="btn w-full py-3 mb-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20">
+                {dict.limits?.upgradeButton || "Upgrade to Pro"}
+              </button>
+            </Link>
+          )}
           <button
             onClick={() => router.push(`/plan?id=${planId}`)}
             className="btn btn-primary w-full"

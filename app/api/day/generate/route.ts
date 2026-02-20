@@ -6,6 +6,7 @@ import { getBestTechArticle } from "@/lib/articles";
 import { getBestMediumArticle } from "@/lib/medium";
 import { getBestWikiPage } from "@/lib/wikipedia";
 import { generateWithAI } from "@/lib/ai-provider";
+import { canOpenDay, incrementDayOpenCount } from "@/lib/subscription";
 import { z } from "zod";
 
 const DayMissionResponseSchema = z.object({
@@ -47,6 +48,18 @@ export async function POST(req: NextRequest) {
 
     if (!userId || !dayNumber || !missionTitle) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Check daily day-opening limit
+    const dayCheck = await canOpenDay(userId);
+    if (!dayCheck.allowed) {
+      return NextResponse.json({
+        limitReached: true,
+        type: "day_limit",
+        tier: dayCheck.tier,
+        remaining: dayCheck.remaining,
+        total: dayCheck.total,
+      }, { status: 429 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -251,6 +264,9 @@ Return ONLY valid JSON:
         recommendedBook: result.recommendedBook ? JSON.stringify(result.recommendedBook) : null,
       },
     });
+
+    // Increment daily day-open counter
+    await incrementDayOpenCount(userId);
 
     return NextResponse.json({
       id: dayPlan.id,
