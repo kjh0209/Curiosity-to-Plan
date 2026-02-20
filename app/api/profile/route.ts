@@ -135,8 +135,14 @@ export async function PUT(req: NextRequest) {
         if (riskStyle !== undefined) updateData.riskStyle = riskStyle;
         if (baselineLevel !== undefined) updateData.baselineLevel = baselineLevel;
 
-        // Password change
+        // Password change (only for credentials users who have a password)
         if (newPassword && currentPassword) {
+            if (!user.password) {
+                return NextResponse.json(
+                    { error: "Cannot change password for Google OAuth accounts" },
+                    { status: 400 }
+                );
+            }
             const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
             if (!isPasswordValid) {
                 return NextResponse.json(
