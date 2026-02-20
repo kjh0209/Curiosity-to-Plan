@@ -42,8 +42,8 @@ export async function searchImages(
         console.warn("UNSPLASH_ACCESS_KEY not set, returning placeholder");
         return [
             {
-                url: `https://via.placeholder.com/800x600?text=${encodeURIComponent(query)}`,
-                thumbnailUrl: `https://via.placeholder.com/400x300?text=${encodeURIComponent(query)}`,
+                url: `https://placehold.co/800x600?text=${encodeURIComponent(query)}`,
+                thumbnailUrl: `https://placehold.co/400x300?text=${encodeURIComponent(query)}`,
                 alt: query,
                 credit: "Placeholder",
                 creditUrl: "#",
@@ -78,8 +78,8 @@ export async function searchImages(
             ? results
             : [
                 {
-                    url: `https://via.placeholder.com/800x600?text=${encodeURIComponent(query)}`,
-                    thumbnailUrl: `https://via.placeholder.com/400x300?text=${encodeURIComponent(query)}`,
+                    url: `https://placehold.co/800x600?text=${encodeURIComponent(query)}`,
+                    thumbnailUrl: `https://placehold.co/400x300?text=${encodeURIComponent(query)}`,
                     alt: query,
                     credit: "Placeholder",
                     creditUrl: "#",
@@ -89,8 +89,8 @@ export async function searchImages(
         console.error("Image search error:", error);
         return [
             {
-                url: `https://via.placeholder.com/800x600?text=${encodeURIComponent(query)}`,
-                thumbnailUrl: `https://via.placeholder.com/400x300?text=${encodeURIComponent(query)}`,
+                url: `https://placehold.co/800x600?text=${encodeURIComponent(query)}`,
+                thumbnailUrl: `https://placehold.co/400x300?text=${encodeURIComponent(query)}`,
                 alt: query,
                 credit: "Placeholder",
                 creditUrl: "#",
