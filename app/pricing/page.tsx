@@ -6,9 +6,9 @@ import Link from "next/link";
 
 const features = [
   { name: "Plans per day", free: "3", pro: "5" },
-  { name: "Days openable per day", free: "1", pro: "3" },
+  { name: "Days openable per day", free: "1", pro: "Unlimited" },
   { name: "AI Model", free: "Gemini Flash", pro: "GPT-4o Mini" },
-  { name: "AI Tokens / month", free: "7,000", pro: "3,000,000" },
+  { name: "AI Tokens / month", free: "7,000", pro: "1,500,000" },
   { name: "Response speed", free: "Standard", pro: "Fast" },
   { name: "All learning features", free: "✓", pro: "✓" },
 ];

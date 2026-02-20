@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: subscriptionId,
               stripeCustomerId: session.customer as string,
               subscriptionEnd: new Date((subscription as any).current_period_end * 1000),
-              geminiMonthlyTokenLimit: 3_000_000,
+              geminiMonthlyTokenLimit: 1_500_000,
             },
           });
         }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
               subscriptionStatus: subscription.status,
               subscriptionTier: isActive ? "pro" : user.subscriptionTier,
               subscriptionEnd: new Date((subscription as any).current_period_end * 1000),
-              geminiMonthlyTokenLimit: isActive ? 3_000_000 : user.geminiMonthlyTokenLimit,
+              geminiMonthlyTokenLimit: isActive ? 1_500_000 : user.geminiMonthlyTokenLimit,
             },
           });
         }

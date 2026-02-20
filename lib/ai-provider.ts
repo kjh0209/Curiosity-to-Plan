@@ -319,6 +319,14 @@ export async function getRemainingQuota(userId: string): Promise<{
     openai: { used: number; limit: number; hasKey: boolean; costEstimate: number };
     gemini: { used: number; limit: number; hasKey: boolean; keyType: "dedicated" | "shared" | "none" };
 }> {
+    // Internal test account: hardcode pro limits
+    if (userId === "__TEST_PRO_ACCOUNT__") {
+        return {
+            openai: { used: 0, limit: 1_500_000, hasKey: true, costEstimate: 0 },
+            gemini: { used: 0, limit: 1_500_000, hasKey: true, keyType: "shared" },
+        };
+    }
+
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {

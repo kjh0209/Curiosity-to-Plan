@@ -21,6 +21,7 @@ interface Profile {
   subscriptionTier: string;
   subscriptionStatus: string;
   subscriptionEnd: string | null;
+  stripeCustomerId: string | null;
   authProvider: string;
   // Daily counters
   plansCreatedToday: number;
@@ -213,6 +214,11 @@ export default function ProfilePage() {
   };
 
   const handleManageSubscription = async () => {
+    // Test account has no Stripe subscription to manage
+    if (!profile?.stripeCustomerId) {
+      setSuccess("This is an internal test account. Subscription management is not available.");
+      return;
+    }
     setPortalLoading(true);
     try {
       const userId = (session?.user as any)?.id;
@@ -224,6 +230,8 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError(data.error || "Failed to open subscription portal");
       }
     } catch (err) {
       setError(String(err));
@@ -529,7 +537,7 @@ export default function ProfilePage() {
                       </div>
                       <p className="text-xs text-slate-500">
                         {profile.subscriptionTier === "pro"
-                          ? "GPT-4o Mini + 3M tokens/mo"
+                          ? "GPT-4o Mini + 1.5M tokens/mo"
                           : "Gemini Flash + 7K tokens/mo"}
                       </p>
                     </div>
@@ -549,7 +557,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
                       <div className="text-slate-500 text-xs mb-1">Days / day</div>
-                      <div className="font-bold text-white">{profile.subscriptionTier === "pro" ? "3" : "1"}</div>
+                      <div className="font-bold text-white">{profile.subscriptionTier === "pro" ? "∞" : "1"}</div>
                     </div>
                   </div>
                 </div>
@@ -672,7 +680,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    {profile.subscriptionTier === "pro" ? "Pro: 3M tokens/month" : "Free: 7K tokens/month"}
+                    {profile.subscriptionTier === "pro" ? "Pro: 1.5M tokens/month" : "Free: 7K tokens/month"}
                   </p>
                 </div>
 
